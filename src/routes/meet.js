@@ -8,7 +8,7 @@ router.use(authenticate);
 
 /**
  * @swagger
- * /api/meet/create:
+ * /api/meet/create-room:
  *   post:
  *     summary: Create meeting room for session
  *     tags: [Meet]
@@ -31,11 +31,11 @@ router.use(authenticate);
  *       400:
  *         description: Invalid session or unauthorized
  */
-router.post('/create', meetController.createMeetingRoom);
+router.post('/create-room', meetController.createMeetingRoom);
 
 /**
  * @swagger
- * /api/meet/{sessionId}:
+ * /api/meet/join/{sessionId}:
  *   get:
  *     summary: Get meeting join details
  *     tags: [Meet]
@@ -53,11 +53,11 @@ router.post('/create', meetController.createMeetingRoom);
  *       400:
  *         description: Session not found or unauthorized
  */
-router.get('/:sessionId', meetController.joinMeeting);
+router.get('/join/:sessionId', meetController.joinMeeting);
 
 /**
  * @swagger
- * /api/meet/{sessionId}/start:
+ * /api/meet/start/{sessionId}:
  *   post:
  *     summary: Start session (host only)
  *     tags: [Meet]
@@ -75,11 +75,11 @@ router.get('/:sessionId', meetController.joinMeeting);
  *       400:
  *         description: Cannot start session
  */
-router.post('/:sessionId/start', meetController.startSession);
+router.post('/start/:sessionId', meetController.startSession);
 
 /**
  * @swagger
- * /api/meet/{sessionId}/end:
+ * /api/meet/end/{sessionId}:
  *   post:
  *     summary: End session (host only)
  *     tags: [Meet]
@@ -97,11 +97,11 @@ router.post('/:sessionId/start', meetController.startSession);
  *       400:
  *         description: Cannot end session
  */
-router.post('/:sessionId/end', meetController.endSession);
+router.post('/end/:sessionId', meetController.endSession);
 
 /**
  * @swagger
- * /api/meet/{sessionId}/attendance:
+ * /api/meet/attendance/{sessionId}:
  *   post:
  *     summary: Record attendance (join/leave)
  *     tags: [Meet]
@@ -129,11 +129,11 @@ router.post('/:sessionId/end', meetController.endSession);
  *       200:
  *         description: Attendance recorded
  */
-router.post('/:sessionId/attendance', meetController.recordAttendance);
+router.post('/attendance/:sessionId', meetController.recordAttendance);
 
 /**
  * @swagger
- * /api/meet/{sessionId}/stats:
+ * /api/meet/stats/{sessionId}:
  *   get:
  *     summary: Get session statistics
  *     tags: [Meet]
@@ -149,11 +149,11 @@ router.post('/:sessionId/attendance', meetController.recordAttendance);
  *       200:
  *         description: Session stats retrieved
  */
-router.get('/:sessionId/stats', meetController.getSessionStats);
+router.get('/stats/:sessionId', meetController.getSessionStats);
 
 /**
  * @swagger
- * /api/meet/{sessionId}/recordings:
+ * /api/meet/recordings/{sessionId}:
  *   get:
  *     summary: Get session recordings (100ms)
  *     tags: [Meet]
@@ -168,29 +168,7 @@ router.get('/:sessionId/stats', meetController.getSessionStats);
  *     responses:
  *       200:
  *         description: Session recordings retrieved
- *         content:
- *           application/json:
- *             schema:
- *               allOf:
- *                 - $ref: '#/components/schemas/ApiResponse'
- *                 - type: object
- *                   properties:
- *                     data:
- *                       type: array
- *                       items:
- *                         type: object
- *                         properties:
- *                           id:
- *                             type: string
- *                           status:
- *                             type: string
- *                           startedAt:
- *                             type: string
- *                           duration:
- *                             type: number
- *                           location:
- *                             type: string
  */
-router.get('/:sessionId/recordings', meetController.getRecordings);
+router.get('/recordings/:sessionId', meetController.getRecordings);
 
 module.exports = router;
