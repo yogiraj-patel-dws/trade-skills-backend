@@ -103,6 +103,74 @@ class AuthService {
       }
     });
   }
+
+  async googleLogin(googleData) {
+    const { email, name, picture, googleId } = googleData;
+    
+    // Check if user exists
+    let user = await prisma.user.findUnique({
+      where: { email },
+      include: { profile: true }
+    });
+    
+    if (user) {
+      // Update Google ID if not set
+      if (!user.googleId) {
+        user = await prisma.user.update({
+          where: { id: user.id },
+          data: { googleId },
+          include: { profile: true }
+        });
+      }
+    } else {
+      // Create new user
+      const [firstName, ...lastNameParts] = name.split(' ');
+      const lastName = lastNameParts.join(' ') || '';
+      
+      const result = await prisma.$transaction(async (tx) => {
+        const newUser = await tx.user.create({
+          data: {
+            email,
+            password: '', // No password for Google users
+            googleId,
+            isVerified: true // Google accounts are pre-verified
+          }
+        });
+        
+        const profile = await tx.userProfile.create({
+          data: {
+            userId: newUser.id,
+            firstName,
+            lastName,
+            profilePicture: picture
+          }
+        });
+        
+        // Create wallet
+        await tx.wallet.create({
+          data: {
+            userId: newUser.id
+          }
+        });
+        
+        return { ...newUser, profile };
+      });
+      
+      user = result;
+    }
+    
+    const token = generateToken({ userId: user.id, email: user.email });
+    
+    return {
+      user: {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+        profile: user.profile
+      },
+      token
+    };
+  }
 }
 
 module.exports = new AuthService();
