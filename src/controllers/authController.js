@@ -25,7 +25,12 @@ class AuthController {
   }
   
   async logout(req, res) {
-    res.status(200).json(ApiResponse.success(null, 'Logout successful', 200));
+    try {
+      const result = await authService.logout(req.user.id);
+      res.status(200).json(ApiResponse.success(result, 'Logout successful', 200));
+    } catch (error) {
+      res.status(500).json(ApiResponse.error('Logout failed', 500));
+    }
   }
   
   async me(req, res) {

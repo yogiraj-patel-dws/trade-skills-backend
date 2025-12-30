@@ -1,6 +1,7 @@
 const bcrypt = require('bcryptjs');
 const { generateToken } = require('../config/jwt');
 const prisma = require('../config/database');
+const redis = require('../config/redis');
 const { v4: uuidv4 } = require('uuid');
 
 class AuthService {
@@ -50,11 +51,23 @@ class AuthService {
     // Generate token
     const token = generateToken({ userId: result.user.id, email: result.user.email });
     
+    // Store token in Redis (24 hours)
+    await redis.set(`auth:${result.user.id}`, {
+      token,
+      userId: result.user.id,
+      email: result.user.email,
+      loginAt: Date.now()
+    }, 24 * 60 * 60);
+    
     return {
       user: {
         id: result.user.id,
         email: result.user.email,
-        profile: result.profile
+        profile: {
+          ...result.profile,
+          createdAt: new Date(result.profile.createdAt).getTime(),
+          updatedAt: new Date(result.profile.updatedAt).getTime()
+        }
       },
       token
     };
@@ -79,19 +92,31 @@ class AuthService {
     
     const token = generateToken({ userId: user.id, email: user.email });
     
+    // Store token in Redis (24 hours)
+    await redis.set(`auth:${user.id}`, {
+      token,
+      userId: user.id,
+      email: user.email,
+      loginAt: Date.now()
+    }, 24 * 60 * 60);
+    
     return {
       user: {
         id: user.id,
         email: user.email,
         role: user.role,
-        profile: user.profile
+        profile: user.profile ? {
+          ...user.profile,
+          createdAt: new Date(user.profile.createdAt).getTime(),
+          updatedAt: new Date(user.profile.updatedAt).getTime()
+        } : null
       },
       token
     };
   }
   
   async getUserById(userId) {
-    return await prisma.user.findUnique({
+    const user = await prisma.user.findUnique({
       where: { id: userId },
       select: {
         id: true,
@@ -102,6 +127,13 @@ class AuthService {
         profile: true
       }
     });
+
+    if (user && user.profile) {
+      user.profile.createdAt = new Date(user.profile.createdAt).getTime();
+      user.profile.updatedAt = new Date(user.profile.updatedAt).getTime();
+    }
+
+    return user;
   }
 
   async googleLogin(googleData) {
@@ -161,15 +193,33 @@ class AuthService {
     
     const token = generateToken({ userId: user.id, email: user.email });
     
+    // Store token in Redis (24 hours)
+    await redis.set(`auth:${user.id}`, {
+      token,
+      userId: user.id,
+      email: user.email,
+      loginAt: Date.now()
+    }, 24 * 60 * 60);
+    
     return {
       user: {
         id: user.id,
         email: user.email,
         role: user.role,
-        profile: user.profile
+        profile: user.profile ? {
+          ...user.profile,
+          createdAt: new Date(user.profile.createdAt).getTime(),
+          updatedAt: new Date(user.profile.updatedAt).getTime()
+        } : null
       },
       token
     };
+  }
+
+  async logout(userId) {
+    // Remove token from Redis
+    await redis.del(`auth:${userId}`);
+    return { message: 'Logged out successfully' };
   }
 }
 
