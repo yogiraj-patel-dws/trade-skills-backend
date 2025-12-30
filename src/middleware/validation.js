@@ -1,4 +1,5 @@
 const Joi = require('joi');
+const ApiResponse = require('../utils/ApiResponse');
 
 // Generic validation middleware
 const validate = (schema) => {
@@ -6,14 +7,12 @@ const validate = (schema) => {
     const { error } = schema.validate(req.body);
     
     if (error) {
-      return res.status(400).json({
-        success: false,
-        message: 'Validation Error',
-        errors: error.details.map(detail => ({
-          field: detail.path.join('.'),
-          message: detail.message
-        }))
-      });
+      const errors = error.details.map(detail => ({
+        field: detail.path.join('.'),
+        message: detail.message
+      }));
+      
+      return res.status(400).json(ApiResponse.error('Validation Error', 400, errors));
     }
     
     next();

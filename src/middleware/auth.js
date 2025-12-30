@@ -1,5 +1,6 @@
 const { verifyToken } = require('../config/jwt');
 const prisma = require('../config/database');
+const ApiResponse = require('../utils/ApiResponse');
 
 // Authenticate JWT token
 const authenticate = async (req, res, next) => {
@@ -7,10 +8,7 @@ const authenticate = async (req, res, next) => {
     const authHeader = req.headers.authorization;
     
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return res.status(401).json({
-        success: false,
-        message: 'Access token required'
-      });
+      return res.status(401).json(ApiResponse.error('Access token required', 401));
     }
     
     const token = authHeader.substring(7);
@@ -29,26 +27,17 @@ const authenticate = async (req, res, next) => {
     });
     
     if (!user || !user.isActive) {
-      return res.status(401).json({
-        success: false,
-        message: 'Invalid or inactive user'
-      });
+      return res.status(401).json(ApiResponse.error('Invalid or inactive user', 401));
     }
     
     req.user = user;
     next();
   } catch (error) {
     if (error.name === 'TokenExpiredError') {
-      return res.status(401).json({
-        success: false,
-        message: 'Token expired'
-      });
+      return res.status(401).json(ApiResponse.error('Token expired', 401));
     }
     
-    return res.status(401).json({
-      success: false,
-      message: 'Invalid token'
-    });
+    return res.status(401).json(ApiResponse.error('Invalid token', 401));
   }
 };
 
@@ -56,24 +45,18 @@ const authenticate = async (req, res, next) => {
 const authorize = (...roles) => {
   return (req, res, next) => {
     if (!req.user) {
-      return res.status(401).json({
-        success: false,
-        message: 'Authentication required'
-      });
+      return res.status(401).json(ApiResponse.error('Authentication required', 401));
     }
     
     if (!roles.includes(req.user.role)) {
-      return res.status(403).json({
-        success: false,
-        message: 'Insufficient permissions'
-      });
+      return res.status(403).json(ApiResponse.error('Insufficient permissions', 403));
     }
     
     next();
   };
 };
 
-// Optional authentication (for public endpoints that can benefit from user context)
+// Optional authentication
 const optionalAuth = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
@@ -100,7 +83,6 @@ const optionalAuth = async (req, res, next) => {
     
     next();
   } catch (error) {
-    // Continue without authentication for optional auth
     next();
   }
 };

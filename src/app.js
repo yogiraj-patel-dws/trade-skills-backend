@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
+const ApiResponse = require('./utils/ApiResponse');
 require('dotenv').config();
 
 const app = express();
@@ -17,7 +18,7 @@ app.use(cors({
 const limiter = rateLimit({
   windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000, // 15 minutes
   max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 100,
-  message: 'Too many requests from this IP, please try again later.'
+  message: ApiResponse.error('Too many requests from this IP, please try again later.', 429)
 });
 app.use('/api/', limiter);
 
@@ -27,14 +28,13 @@ app.use(express.urlencoded({ extended: true }));
 
 // Health check endpoint
 app.get('/health', (req, res) => {
-  res.status(200).json({ 
-    status: 'OK', 
+  res.status(200).json(ApiResponse.success({
     timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV 
-  });
+    environment: process.env.NODE_ENV
+  }, 'Server is healthy', 200));
 });
 
-// API Routes (to be added)
+// API Routes
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/users', require('./routes/users'));
 app.use('/api/skills', require('./routes/skills'));
@@ -51,32 +51,19 @@ app.use((err, req, res, next) => {
   console.error(err.stack);
   
   if (err.name === 'ValidationError') {
-    return res.status(400).json({
-      success: false,
-      message: 'Validation Error',
-      errors: err.details
-    });
+    return res.status(400).json(ApiResponse.error('Validation Error', 400, err.details));
   }
   
   if (err.name === 'UnauthorizedError') {
-    return res.status(401).json({
-      success: false,
-      message: 'Unauthorized'
-    });
+    return res.status(401).json(ApiResponse.error('Unauthorized', 401));
   }
   
-  res.status(500).json({
-    success: false,
-    message: 'Internal Server Error'
-  });
+  res.status(500).json(ApiResponse.error('Internal Server Error', 500));
 });
 
 // 404 handler
 app.use('*', (req, res) => {
-  res.status(404).json({
-    success: false,
-    message: 'Route not found'
-  });
+  res.status(404).json(ApiResponse.error('Route not found', 404));
 });
 
 const PORT = process.env.PORT || 3000;
