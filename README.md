@@ -1,0 +1,175 @@
+# Trade Skills Backend
+
+A comprehensive backend API for a skill exchange platform with credit-based economy, session management, and payment integration.
+
+## 🚀 Quick Start
+
+### Prerequisites
+- Node.js (v16 or higher)
+- PostgreSQL database
+- npm or yarn
+
+### Installation
+
+1. **Clone and setup**
+```bash
+cd trade-skills-backend
+npm install
+```
+
+2. **Environment Setup**
+```bash
+cp .env.example .env
+# Edit .env with your configuration
+```
+
+3. **Database Setup**
+```bash
+# Generate Prisma client
+npm run db:generate
+
+# Run migrations
+npm run db:migrate
+
+# Seed database (optional)
+npm run db:seed
+```
+
+4. **Start Development Server**
+```bash
+npm run dev
+```
+
+## 📁 Project Structure
+
+```
+trade-skills-backend/
+├── src/
+│   ├── config/          # Database, JWT, and other configurations
+│   ├── controllers/     # Request handlers
+│   ├── middleware/      # Authentication, validation, etc.
+│   ├── routes/          # API route definitions
+│   ├── services/        # Business logic
+│   ├── utils/           # Helper functions
+│   └── app.js          # Express app setup
+├── prisma/
+│   ├── schema.prisma   # Database schema
+│   └── migrations/     # Database migrations
+├── tests/              # Test files
+└── logs/               # Application logs
+```
+
+## 🔧 API Endpoints
+
+### Authentication
+- `POST /api/auth/register` - User registration
+- `POST /api/auth/login` - User login
+- `POST /api/auth/logout` - User logout
+
+### Users & Profiles
+- `GET /api/users/me` - Get current user profile
+- `PUT /api/users/me` - Update user profile
+- `POST /api/users/skills` - Add user skills
+
+### Sessions
+- `POST /api/sessions` - Create new session
+- `GET /api/sessions/my` - Get user's sessions
+- `POST /api/sessions/:id/join` - Join a session
+
+### Credit Wallet
+- `GET /api/wallet` - Get wallet balance
+- `GET /api/wallet/transactions` - Get transaction history
+- `POST /api/wallet/lock-credits` - Lock credits for session
+
+### Payments
+- `GET /api/payments/packages` - Get credit packages
+- `POST /api/payments/create-order` - Create payment order
+- `POST /api/payments/webhook` - Payment gateway webhook
+
+### Admin Panel
+- `GET /api/admin/dashboard/stats` - Admin dashboard metrics
+- `GET /api/admin/users` - Manage users
+- `GET /api/admin/sessions` - Moderate sessions
+
+## 🏗️ Implementation Phases
+
+### Phase 1: Core Setup ✅
+- [x] Project structure
+- [x] Database schema
+- [x] Basic Express setup
+- [x] Authentication middleware
+
+### Phase 2: Authentication (Next)
+- [ ] User registration/login
+- [ ] JWT token management
+- [ ] Password reset flow
+- [ ] OAuth integration
+
+### Phase 3: Core Features
+- [ ] User profiles & skills
+- [ ] Session management
+- [ ] Credit wallet system
+- [ ] Payment integration
+
+### Phase 4: Advanced Features
+- [ ] Meet integration
+- [ ] Admin panel
+- [ ] Notifications
+- [ ] Reports & moderation
+
+## 🔒 Security Features
+
+- JWT-based authentication
+- Rate limiting
+- Input validation with Joi
+- SQL injection prevention
+- CORS configuration
+- Helmet security headers
+
+## 🧪 Testing
+
+```bash
+# Run tests
+npm test
+
+# Run tests in watch mode
+npm run test:watch
+```
+
+## 📊 Database Schema
+
+Key entities:
+- **Users**: Authentication and basic info
+- **UserProfiles**: Detailed user information
+- **Skills**: Skill catalog and user skills
+- **Sessions**: Session management and lifecycle
+- **Wallets**: Credit balance and transactions
+- **Payments**: Payment processing and packages
+
+## 🚀 Deployment
+
+1. Set production environment variables
+2. Run database migrations
+3. Build and start the application
+4. Configure reverse proxy (nginx)
+5. Set up SSL certificates
+
+## 📝 Development Guidelines
+
+- Follow RESTful API conventions
+- Use proper HTTP status codes
+- Implement comprehensive error handling
+- Write unit tests for business logic
+- Use database transactions for critical operations
+- Maintain proper logging
+
+## 🤝 Contributing
+
+1. Follow the established code structure
+2. Write tests for new features
+3. Update documentation
+4. Follow commit message conventions
+
+## 📄 License
+
+MIT License - see LICENSE file for details
