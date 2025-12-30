@@ -1,5 +1,4 @@
 const prisma = require('../config/database');
-const { convertDatesToTimestamps } = require('../utils/dateUtils');
 
 class SessionService {
   async createSession(hostId, sessionData) {
@@ -36,7 +35,7 @@ class SessionService {
         }
       });
 
-      return convertDatesToTimestamps(session);
+      return session;
     });
   }
 
@@ -74,7 +73,7 @@ class SessionService {
         }
       }
     });
-    return convertDatesToTimestamps(session);
+    return session;
   }
 
   async getUserSessions(userId, type = 'all') {
@@ -127,7 +126,7 @@ class SessionService {
         scheduledAt: 'desc'
       }
     });
-    return convertDatesToTimestamps(sessions);
+    return sessions;
   }
 
   async getPublicSessions(filters = {}) {
@@ -169,7 +168,7 @@ class SessionService {
         scheduledAt: 'asc'
       }
     });
-    return convertDatesToTimestamps(sessions);
+    return sessions;
   }
 
   async joinSession(sessionId, userId) {
