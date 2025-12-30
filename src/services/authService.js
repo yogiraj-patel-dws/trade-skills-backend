@@ -3,6 +3,8 @@ const { generateToken } = require('../config/jwt');
 const prisma = require('../config/database');
 const redis = require('../config/redis');
 const { v4: uuidv4 } = require('uuid');
+const crypto = require('crypto');
+const nodemailer = require('nodemailer');
 
 class AuthService {
   async register(userData) {
@@ -226,6 +228,95 @@ class AuthService {
     // Remove token from Redis
     await redis.del(`auth:${userId}`);
     return { message: 'Logged out successfully' };
+  }
+
+  async forgotPassword(email) {
+    const user = await prisma.user.findUnique({
+      where: { email }
+    });
+    
+    if (!user) {
+      throw new Error('User not found with this email');
+    }
+    
+    // Generate reset token
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    const resetTokenExpiry = BigInt(Date.now() + 3600000); // 1 hour
+    
+    // Save reset token to database
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        resetToken,
+        resetTokenExpiry,
+        updatedAt: BigInt(Date.now())
+      }
+    });
+    
+    // Send email
+    await this.sendResetEmail(email, resetToken);
+  }
+
+  async resetPassword(token, newPassword) {
+    const user = await prisma.user.findFirst({
+      where: {
+        resetToken: token,
+        resetTokenExpiry: {
+          gt: BigInt(Date.now())
+        }
+      }
+    });
+    
+    if (!user) {
+      throw new Error('Invalid or expired reset token');
+    }
+    
+    // Hash new password
+    const hashedPassword = await bcrypt.hash(newPassword, parseInt(process.env.BCRYPT_SALT_ROUNDS) || 12);
+    
+    // Update password and clear reset token
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        password: hashedPassword,
+        resetToken: null,
+        resetTokenExpiry: null,
+        updatedAt: BigInt(Date.now())
+      }
+    });
+    
+    // Clear any existing auth tokens
+    await redis.del(`auth:${user.id}`);
+  }
+
+  async sendResetEmail(email, resetToken) {
+    const transporter = nodemailer.createTransport({
+      host: process.env.EMAIL_HOST,
+      port: process.env.EMAIL_PORT,
+      secure: process.env.EMAIL_SECURE === 'true',
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS
+      }
+    });
+    
+    const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/reset-password?token=${resetToken}`;
+    
+    const mailOptions = {
+      from: process.env.EMAIL_FROM,
+      to: email,
+      subject: 'Password Reset - Trade Skills',
+      html: `
+        <h2>Password Reset Request</h2>
+        <p>You requested a password reset for your Trade Skills account.</p>
+        <p>Click the link below to reset your password:</p>
+        <a href="${resetUrl}" style="background: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Reset Password</a>
+        <p>This link will expire in 1 hour.</p>
+        <p>If you didn't request this, please ignore this email.</p>
+      `
+    };
+    
+    await transporter.sendMail(mailOptions);
   }
 }
 

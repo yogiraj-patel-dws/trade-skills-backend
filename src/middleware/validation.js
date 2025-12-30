@@ -34,6 +34,15 @@ const schemas = {
     password: Joi.string().required()
   }),
   
+  forgotPassword: Joi.object({
+    email: Joi.string().email().required()
+  }),
+  
+  resetPassword: Joi.object({
+    token: Joi.string().required(),
+    password: Joi.string().min(8).required()
+  }),
+  
   // User profile schemas
   updateProfile: Joi.object({
     firstName: Joi.string().min(2).max(50),

@@ -17,11 +17,17 @@ if (process.env.NODE_ENV === 'production') {
 app.use(helmet());
 
 // CORS configuration based on environment
+const getAllowedOrigins = () => {
+  if (process.env.NODE_ENV === 'production') {
+    return ['https://incognizant-yarely-annamaria.ngrok-free.dev', 'https://tradeskills.vercel.app'];
+  }
+  
+  const frontendUrls = process.env.FRONTEND_URLS ? process.env.FRONTEND_URLS.split(',') : [];
+  return ['http://localhost:3000', 'http://localhost:5174', 'http://localhost:3001', ...frontendUrls];
+};
+
 const corsOptions = {
-  origin: process.env.NODE_ENV === 'production' 
-    ? ['https://incognizant-yarely-annamaria.ngrok-free.dev']
-    : '*',
-  credentials: true,
+  origin: "*",
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 };

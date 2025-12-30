@@ -68,6 +68,26 @@ class AuthController {
       res.status(401).json(ApiResponse.error(error.message, 401));
     }
   }
+
+  async forgotPassword(req, res) {
+    try {
+      const { email } = req.body;
+      await authService.forgotPassword(email);
+      res.status(200).json(ApiResponse.success({}, 'Password reset email sent', 200));
+    } catch (error) {
+      res.status(400).json(ApiResponse.error(error.message, 400));
+    }
+  }
+
+  async resetPassword(req, res) {
+    try {
+      const { token, password } = req.body;
+      await authService.resetPassword(token, password);
+      res.status(200).json(ApiResponse.success({}, 'Password reset successful', 200));
+    } catch (error) {
+      res.status(400).json(ApiResponse.error(error.message, 400));
+    }
+  }
 }
 
 module.exports = new AuthController();
