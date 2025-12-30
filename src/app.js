@@ -8,6 +8,11 @@ require('dotenv').config();
 
 const app = express();
 
+// Trust proxy for production deployment
+if (process.env.NODE_ENV === 'production') {
+  app.set('trust proxy', 1);
+}
+
 // Security middleware
 app.use(helmet());
 
