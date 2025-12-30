@@ -26,7 +26,8 @@ class AuthService {
         data: {
           email,
           password: hashedPassword,
-          verificationToken: uuidv4()
+          verificationToken: uuidv4(),
+          updatedAt: BigInt(Date.now())
         }
       });
       
@@ -34,14 +35,16 @@ class AuthService {
         data: {
           userId: user.id,
           firstName,
-          lastName
+          lastName,
+          updatedAt: BigInt(Date.now())
         }
       });
       
       // Create wallet
       await tx.wallet.create({
         data: {
-          userId: user.id
+          userId: user.id,
+          updatedAt: BigInt(Date.now())
         }
       });
       
@@ -65,8 +68,8 @@ class AuthService {
         email: result.user.email,
         profile: {
           ...result.profile,
-          createdAt: new Date(result.profile.createdAt).getTime(),
-          updatedAt: new Date(result.profile.updatedAt).getTime()
+          createdAt: Number(result.profile.createdAt),
+          updatedAt: Number(result.profile.updatedAt)
         }
       },
       token
@@ -107,8 +110,8 @@ class AuthService {
         role: user.role,
         profile: user.profile ? {
           ...user.profile,
-          createdAt: new Date(user.profile.createdAt).getTime(),
-          updatedAt: new Date(user.profile.updatedAt).getTime()
+          createdAt: Number(user.profile.createdAt),
+          updatedAt: Number(user.profile.updatedAt)
         } : null
       },
       token
@@ -129,8 +132,8 @@ class AuthService {
     });
 
     if (user && user.profile) {
-      user.profile.createdAt = new Date(user.profile.createdAt).getTime();
-      user.profile.updatedAt = new Date(user.profile.updatedAt).getTime();
+      user.profile.createdAt = Number(user.profile.createdAt);
+      user.profile.updatedAt = Number(user.profile.updatedAt);
     }
 
     return user;
@@ -165,7 +168,8 @@ class AuthService {
             email,
             password: '', // No password for Google users
             googleId,
-            isVerified: true // Google accounts are pre-verified
+            isVerified: true, // Google accounts are pre-verified
+            updatedAt: BigInt(Date.now())
           }
         });
         
@@ -174,14 +178,16 @@ class AuthService {
             userId: newUser.id,
             firstName,
             lastName,
-            profilePicture: picture
+            profilePicture: picture,
+            updatedAt: BigInt(Date.now())
           }
         });
         
         // Create wallet
         await tx.wallet.create({
           data: {
-            userId: newUser.id
+            userId: newUser.id,
+            updatedAt: BigInt(Date.now())
           }
         });
         
@@ -208,8 +214,8 @@ class AuthService {
         role: user.role,
         profile: user.profile ? {
           ...user.profile,
-          createdAt: new Date(user.profile.createdAt).getTime(),
-          updatedAt: new Date(user.profile.updatedAt).getTime()
+          createdAt: Number(user.profile.createdAt),
+          updatedAt: Number(user.profile.updatedAt)
         } : null
       },
       token
