@@ -39,10 +39,11 @@ async function main() {
   ];
 
   for (const pkg of packages) {
-    await prisma.paymentPackage.upsert({
-      where: { name: pkg.name },
-      update: pkg,
-      create: pkg
+    await prisma.paymentPackage.create({
+      data: {
+        ...pkg,
+        createdAt: BigInt(Date.now())
+      }
     });
   }
 
@@ -84,8 +85,14 @@ async function main() {
   for (const skill of skills) {
     await prisma.skill.upsert({
       where: { name: skill.name },
-      update: skill,
-      create: skill
+      update: {
+        ...skill,
+        createdAt: BigInt(Date.now())
+      },
+      create: {
+        ...skill,
+        createdAt: BigInt(Date.now())
+      }
     });
   }
 
@@ -103,16 +110,21 @@ async function main() {
       role: 'ADMIN',
       isActive: true,
       isVerified: true,
+      updatedAt: BigInt(Date.now()),
       profile: {
         create: {
           firstName: 'Admin',
           lastName: 'User',
-          bio: 'Platform Administrator'
+          bio: 'Platform Administrator',
+          createdAt: BigInt(Date.now()),
+          updatedAt: BigInt(Date.now())
         }
       },
       wallet: {
         create: {
-          availableCredits: 1000
+          availableCredits: 1000,
+          createdAt: BigInt(Date.now()),
+          updatedAt: BigInt(Date.now())
         }
       }
     }
@@ -132,18 +144,23 @@ async function main() {
       role: 'USER',
       isActive: true,
       isVerified: true,
+      updatedAt: BigInt(Date.now()),
       profile: {
         create: {
           firstName: 'Demo',
           lastName: 'User',
           bio: 'Demo user for testing the platform',
           rating: 4.8,
-          totalReviews: 25
+          totalReviews: 25,
+          createdAt: BigInt(Date.now()),
+          updatedAt: BigInt(Date.now())
         }
       },
       wallet: {
         create: {
-          availableCredits: 100
+          availableCredits: 100,
+          createdAt: BigInt(Date.now()),
+          updatedAt: BigInt(Date.now())
         }
       }
     }
