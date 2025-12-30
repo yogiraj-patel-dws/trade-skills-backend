@@ -1,17 +1,17 @@
 class ApiResponse {
-  static success(data = null, message = 'Success', code = 200) {
+  static success(data = null, message = 'Success', statusCode = 200) {
     return {
-      status: true,
-      code,
+      success: true,
+      statusCode,
       message,
       data
     };
   }
   
-  static error(message = 'Error', code = 500, data = null) {
+  static error(message = 'Error', statusCode = 500, data = null) {
     return {
-      status: false,
-      code,
+      success: false,
+      statusCode,
       message,
       data
     };
