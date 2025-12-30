@@ -9,7 +9,7 @@ class SkillController {
       
       res.status(200).json(ApiResponse.success(skills, 'Skills retrieved successfully', 200));
     } catch (error) {
-      res.status(500).json(ApiResponse.error('Failed to get skills', 500));
+      res.status(500).json(ApiResponse.error(`Failed to get skills: ${error.message}`, 500));
     }
   }
 

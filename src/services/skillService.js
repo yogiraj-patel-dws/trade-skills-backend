@@ -8,7 +8,8 @@ class SkillService {
       data: {
         name,
         description,
-        category
+        category,
+        createdAt: BigInt(Date.now())
       }
     });
   }
@@ -29,7 +30,7 @@ class SkillService {
       ];
     }
 
-    return await prisma.skill.findMany({
+    const skills = await prisma.skill.findMany({
       where,
       include: {
         userSkills: {
@@ -42,7 +43,9 @@ class SkillService {
                   select: {
                     firstName: true,
                     lastName: true,
-                    rating: true
+                    rating: true,
+                    createdAt: true,
+                    updatedAt: true
                   }
                 }
               }
@@ -51,11 +54,26 @@ class SkillService {
         }
       },
       orderBy: {
-        userSkills: {
-          _count: 'desc'
-        }
+        createdAt: 'desc'
       }
     });
+
+    return skills.map(skill => ({
+      ...skill,
+      createdAt: Number(skill.createdAt),
+      userSkills: skill.userSkills.map(us => ({
+        ...us,
+        createdAt: Number(us.createdAt),
+        user: {
+          ...us.user,
+          profile: us.user.profile ? {
+            ...us.user.profile,
+            createdAt: Number(us.user.profile.createdAt),
+            updatedAt: Number(us.user.profile.updatedAt)
+          } : null
+        }
+      }))
+    }));
   }
 
   async getSkillById(skillId) {
@@ -140,9 +158,7 @@ class SkillService {
         }
       },
       orderBy: {
-        userSkills: {
-          _count: 'desc'
-        }
+        createdAt: 'desc'
       },
       take: limit
     });
