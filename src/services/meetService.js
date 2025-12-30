@@ -1,7 +1,12 @@
+const { SDK } = require('@100mslive/server-sdk');
 const { v4: uuidv4 } = require('uuid');
 const prisma = require('../config/database');
 
 class MeetService {
+  constructor() {
+    this.hms = new SDK(process.env.HMS_ACCESS_KEY, process.env.HMS_SECRET);
+  }
+
   async createMeetingRoom(sessionId, hostId) {
     const session = await prisma.session.findUnique({
       where: { id: sessionId },
@@ -27,34 +32,50 @@ class MeetService {
       throw new Error('Only session host can create meeting room');
     }
 
-    // Generate unique meeting room ID
-    const meetingId = `tradeskills-${sessionId.slice(0, 8)}-${Date.now()}`;
-    
-    // Create Jitsi Meet room URL
-    const meetingLink = `https://meet.jit.si/${meetingId}`;
+    try {
+      // Create 100ms room
+      const roomName = `tradeskills-${sessionId.slice(0, 8)}-${Date.now()}`;
+      
+      const roomConfig = {
+        name: roomName,
+        description: session.title,
+        template_id: process.env.HMS_TEMPLATE_ID,
+        region: 'us',
+        recording_info: {
+          enabled: true,
+          upload_info: {
+            type: 's3',
+            location: 'us-west-2'
+          }
+        }
+      };
 
-    // Update session with meeting details
-    const updatedSession = await prisma.session.update({
-      where: { id: sessionId },
-      data: {
-        meetingId,
-        meetingLink,
-        status: 'CONFIRMED'
-      }
-    });
+      const room = await this.hms.rooms.create(roomConfig);
+      
+      // Update session with meeting details
+      const updatedSession = await prisma.session.update({
+        where: { id: sessionId },
+        data: {
+          meetingId: room.id,
+          meetingLink: `https://tradeskills.app.100ms.live/meeting/${room.id}`,
+          status: 'CONFIRMED'
+        }
+      });
 
-    return {
-      meetingId,
-      meetingLink,
-      session: updatedSession,
-      roomConfig: {
-        roomName: meetingId,
-        displayName: `${session.host.profile.firstName} ${session.host.profile.lastName}`,
-        subject: session.title,
-        startWithAudioMuted: false,
-        startWithVideoMuted: false
-      }
-    };
+      return {
+        roomId: room.id,
+        meetingLink: `https://tradeskills.app.100ms.live/meeting/${room.id}`,
+        session: updatedSession,
+        roomConfig: {
+          roomId: room.id,
+          roomName: room.name,
+          templateId: process.env.HMS_TEMPLATE_ID
+        }
+      };
+    } catch (error) {
+      console.error('100ms room creation error:', error);
+      throw new Error('Failed to create meeting room');
+    }
   }
 
   async joinMeeting(sessionId, userId) {
@@ -82,7 +103,7 @@ class MeetService {
       throw new Error('Session not found');
     }
 
-    if (!session.meetingLink) {
+    if (!session.meetingId) {
       throw new Error('Meeting room not created yet');
     }
 
@@ -107,18 +128,35 @@ class MeetService {
       }
     });
 
-    return {
-      meetingLink: session.meetingLink,
-      meetingId: session.meetingId,
-      isHost,
-      roomConfig: {
-        roomName: session.meetingId,
-        displayName: `${user.profile.firstName} ${user.profile.lastName}`,
-        subject: session.title,
-        startWithAudioMuted: !isHost,
-        startWithVideoMuted: !isHost
-      }
-    };
+    try {
+      // Generate 100ms auth token
+      const authToken = await this.hms.auth.getAuthToken({
+        room_id: session.meetingId,
+        user_id: userId,
+        role: isHost ? 'host' : 'guest',
+        type: 'app',
+        data: {
+          name: `${user.profile.firstName} ${user.profile.lastName}`,
+          sessionId: sessionId,
+          isHost: isHost
+        }
+      });
+
+      return {
+        authToken,
+        roomId: session.meetingId,
+        meetingLink: session.meetingLink,
+        isHost,
+        userInfo: {
+          userId,
+          name: `${user.profile.firstName} ${user.profile.lastName}`,
+          role: isHost ? 'host' : 'guest'
+        }
+      };
+    } catch (error) {
+      console.error('100ms auth token error:', error);
+      throw new Error('Failed to generate meeting access token');
+    }
   }
 
   async startSession(sessionId, hostId) {
@@ -145,6 +183,18 @@ class MeetService {
         actualStartTime: new Date()
       }
     });
+
+    // Start recording if room exists
+    if (session.meetingId) {
+      try {
+        await this.hms.recordings.start({
+          room_id: session.meetingId,
+          meeting_url: session.meetingLink
+        });
+      } catch (error) {
+        console.error('Failed to start recording:', error);
+      }
+    }
 
     return updatedSession;
   }
@@ -173,6 +223,20 @@ class MeetService {
       }
     });
 
+    // Stop recording and end room
+    if (session.meetingId) {
+      try {
+        await this.hms.recordings.stop({
+          room_id: session.meetingId
+        });
+        
+        // End the room
+        await this.hms.rooms.disable(session.meetingId);
+      } catch (error) {
+        console.error('Failed to stop recording/end room:', error);
+      }
+    }
+
     return updatedSession;
   }
 
@@ -199,10 +263,8 @@ class MeetService {
 
     if (action === 'join') {
       if (isHost) {
-        // Host joined - no participant record needed
         return { message: 'Host joined session' };
       } else {
-        // Update participant join time
         await prisma.sessionParticipant.update({
           where: { id: participant.id },
           data: { joinedAt: new Date() }
@@ -211,7 +273,6 @@ class MeetService {
       }
     } else if (action === 'leave') {
       if (!isHost && participant) {
-        // Update participant leave time
         await prisma.sessionParticipant.update({
           where: { id: participant.id },
           data: { leftAt: new Date() }
@@ -269,7 +330,50 @@ class MeetService {
       );
     }
 
+    // Get 100ms analytics if available
+    if (session.meetingId) {
+      try {
+        const roomInfo = await this.hms.rooms.retrieve(session.meetingId);
+        stats.roomAnalytics = {
+          roomId: roomInfo.id,
+          createdAt: roomInfo.created_at,
+          isDisabled: roomInfo.disabled
+        };
+      } catch (error) {
+        console.error('Failed to get room analytics:', error);
+      }
+    }
+
     return stats;
+  }
+
+  async getRecordings(sessionId) {
+    const session = await prisma.session.findUnique({
+      where: { id: sessionId }
+    });
+
+    if (!session || !session.meetingId) {
+      throw new Error('Session or meeting room not found');
+    }
+
+    try {
+      const recordings = await this.hms.recordings.list({
+        room_id: session.meetingId
+      });
+
+      return recordings.map(recording => ({
+        id: recording.id,
+        status: recording.status,
+        startedAt: recording.started_at,
+        stoppedAt: recording.stopped_at,
+        duration: recording.duration,
+        size: recording.size,
+        location: recording.location
+      }));
+    } catch (error) {
+      console.error('Failed to get recordings:', error);
+      throw new Error('Failed to retrieve session recordings');
+    }
   }
 }
 

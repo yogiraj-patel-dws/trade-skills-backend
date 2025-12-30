@@ -151,4 +151,46 @@ router.post('/:sessionId/attendance', meetController.recordAttendance);
  */
 router.get('/:sessionId/stats', meetController.getSessionStats);
 
+/**
+ * @swagger
+ * /api/meet/{sessionId}/recordings:
+ *   get:
+ *     summary: Get session recordings (100ms)
+ *     tags: [Meet]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: sessionId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Session recordings retrieved
+ *         content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: '#/components/schemas/ApiResponse'
+ *                 - type: object
+ *                   properties:
+ *                     data:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           id:
+ *                             type: string
+ *                           status:
+ *                             type: string
+ *                           startedAt:
+ *                             type: string
+ *                           duration:
+ *                             type: number
+ *                           location:
+ *                             type: string
+ */
+router.get('/:sessionId/recordings', meetController.getRecordings);
+
 module.exports = router;

@@ -69,6 +69,17 @@ class MeetController {
       res.status(400).json(ApiResponse.error(error.message, 400));
     }
   }
+
+  async getRecordings(req, res) {
+    try {
+      const { sessionId } = req.params;
+      const recordings = await meetService.getRecordings(sessionId);
+      
+      res.status(200).json(ApiResponse.success(recordings, 'Session recordings retrieved', 200));
+    } catch (error) {
+      res.status(400).json(ApiResponse.error(error.message, 400));
+    }
+  }
 }
 
 module.exports = new MeetController();
