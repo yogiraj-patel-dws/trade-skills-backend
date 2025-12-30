@@ -23,7 +23,7 @@ model User {
   resetToken    String?
   resetTokenExpiry BigInt? @db.BigInt
   createdAt     BigInt @default(dbgenerated("extract(epoch from now()) * 1000")) @db.BigInt
-  updatedAt     BigInt @db.BigInt
+  updatedAt     BigInt @updatedAt @db.BigInt
 
   // Relations
   profile       UserProfile?
@@ -53,7 +53,7 @@ model UserProfile {
   rating       Float    @default(0.0)
   totalReviews Int      @default(0)
   createdAt    BigInt @default(dbgenerated("extract(epoch from now()) * 1000")) @db.BigInt
-  updatedAt    BigInt @db.BigInt
+  updatedAt    BigInt @updatedAt @db.BigInt
 
   // Relations
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -68,7 +68,7 @@ model Skill {
   description String?
   category    String
   isActive    Boolean @default(true)
-  createdAt   BigInt @default(dbgenerated("extract(epoch from now()) * 1000")) @db.BigInt
+  createdAt   DateTime @default(now()) @db.Timestamptz(3)
 
   // Relations
   userSkills UserSkill[]
@@ -84,7 +84,7 @@ model UserSkill {
   yearsOfExperience Int?
   canTeach     Boolean     @default(false)
   wantsToLearn Boolean     @default(false)
-  createdAt    BigInt @default(dbgenerated("extract(epoch from now()) * 1000")) @db.BigInt
+  createdAt    DateTime    @default(now()) @db.Timestamptz(3)
 
   // Relations
   user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -105,14 +105,14 @@ model Session {
   status      SessionStatus @default(PENDING)
   maxParticipants Int?
   creditCost  Int
-  scheduledAt BigInt @db.BigInt
+  scheduledAt DateTime @db.Timestamptz(3)
   duration    Int           // Duration in minutes
   meetingLink String?
   meetingId   String?
-  actualStartTime BigInt? @db.BigInt
-  actualEndTime BigInt? @db.BigInt
-  createdAt   BigInt @default(dbgenerated("extract(epoch from now()) * 1000")) @db.BigInt
-  updatedAt   BigInt @db.BigInt
+  actualStartTime DateTime? @db.Timestamptz(3)
+  actualEndTime DateTime? @db.Timestamptz(3)
+  createdAt   DateTime      @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime      @updatedAt @db.Timestamptz(3)
 
   // Relations
   host         User @relation("SessionHost", fields: [hostId], references: [id])
@@ -127,9 +127,9 @@ model SessionParticipant {
   sessionId String
   userId    String
   status    ParticipantStatus   @default(PENDING)
-  joinedAt  BigInt? @db.BigInt
-  leftAt    BigInt? @db.BigInt
-  createdAt BigInt @default(dbgenerated("extract(epoch from now()) * 1000")) @db.BigInt
+  joinedAt  DateTime? @db.Timestamptz(3)
+  leftAt    DateTime? @db.Timestamptz(3)
+  createdAt DateTime            @default(now()) @db.Timestamptz(3)
 
   // Relations
   session Session @relation(fields: [sessionId], references: [id], onDelete: Cascade)
@@ -147,8 +147,8 @@ model Wallet {
   lockedCredits   Int    @default(0)
   totalEarned     Int    @default(0)
   totalSpent      Int    @default(0)
-  createdAt       BigInt @default(dbgenerated("extract(epoch from now()) * 1000")) @db.BigInt
-  updatedAt       BigInt @db.BigInt
+  createdAt       DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt       DateTime @updatedAt @db.Timestamptz(3)
 
   // Relations
   user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -167,8 +167,8 @@ model Transaction {
   amount      Int
   description String?
   status      TransactionStatus @default(PENDING)
-  createdAt   BigInt @default(dbgenerated("extract(epoch from now()) * 1000")) @db.BigInt
-  updatedAt   BigInt @db.BigInt
+  createdAt   DateTime          @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime          @updatedAt @db.Timestamptz(3)
 
   // Relations
   wallet  Wallet   @relation(fields: [walletId], references: [id], onDelete: Cascade)
@@ -184,8 +184,8 @@ model CreditLock {
   sessionId String
   amount    Int
   reason    String
-  lockedAt  BigInt @default(dbgenerated("extract(epoch from now()) * 1000")) @db.BigInt
-  releasedAt BigInt? @db.BigInt
+  lockedAt  DateTime  @default(now()) @db.Timestamptz(3)
+  releasedAt DateTime? @db.Timestamptz(3)
   isReleased Boolean  @default(false)
 
   // Relations
@@ -207,8 +207,8 @@ model Payment {
   status          PaymentStatus @default(PENDING)
   creditsAwarded  Int?
   failureReason   String?
-  createdAt       BigInt @default(dbgenerated("extract(epoch from now()) * 1000")) @db.BigInt
-  updatedAt       BigInt @db.BigInt
+  createdAt       DateTime      @default(now()) @db.Timestamptz(3)
+  updatedAt       DateTime      @updatedAt @db.Timestamptz(3)
 
   // Relations
   package      PaymentPackage @relation(fields: [packageId], references: [id])
@@ -225,7 +225,7 @@ model PaymentPackage {
   price       Float
   currency    String  @default("INR")
   isActive    Boolean @default(true)
-  createdAt   BigInt @default(dbgenerated("extract(epoch from now()) * 1000")) @db.BigInt
+  createdAt   DateTime @default(now()) @db.Timestamptz(3)
 
   // Relations
   payments Payment[]
@@ -241,7 +241,7 @@ model Review {
   sessionId  String?
   rating     Int    // 1-5 scale
   comment    String?
-  createdAt  BigInt @default(dbgenerated("extract(epoch from now()) * 1000")) @db.BigInt
+  createdAt  DateTime @default(now()) @db.Timestamptz(3)
 
   // Relations
   sender   User @relation("ReviewSender", fields: [senderId], references: [id], onDelete: Cascade)
@@ -261,8 +261,8 @@ model Report {
   description String?
   status      ReportStatus @default(PENDING)
   resolvedBy  String?
-  resolvedAt  BigInt? @db.BigInt
-  createdAt   BigInt @default(dbgenerated("extract(epoch from now()) * 1000")) @db.BigInt
+  resolvedAt  DateTime? @db.Timestamptz(3)
+  createdAt   DateTime    @default(now()) @db.Timestamptz(3)
 
   // Relations
   reporter User @relation(fields: [reporterId], references: [id], onDelete: Cascade)
@@ -279,7 +279,7 @@ model Notification {
   message   String
   data      Json?            // Additional data as JSON
   isRead    Boolean          @default(false)
-  createdAt BigInt @default(dbgenerated("extract(epoch from now()) * 1000")) @db.BigInt
+  createdAt DateTime         @default(now()) @db.Timestamptz(3)
 
   // Relations
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -295,7 +295,7 @@ model AdminAction {
   action      String
   description String?
   metadata    Json?
-  createdAt   BigInt @default(dbgenerated("extract(epoch from now()) * 1000")) @db.BigInt
+  createdAt   DateTime   @default(now()) @db.Timestamptz(3)
 
   // Relations
   admin User @relation(fields: [adminId], references: [id])

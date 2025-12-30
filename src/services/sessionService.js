@@ -1,4 +1,5 @@
 const prisma = require('../config/database');
+const { convertDatesToTimestamps } = require('../utils/dateUtils');
 
 class SessionService {
   async createSession(hostId, sessionData) {
@@ -15,7 +16,7 @@ class SessionService {
           sessionType,
           maxParticipants: sessionType === 'ONE_TO_MANY' ? maxParticipants : 1,
           creditCost,
-          scheduledAt: new Date(scheduledAt),
+          scheduledAt: BigInt(scheduledAt),
           duration,
           status: 'PENDING'
         },
@@ -35,12 +36,12 @@ class SessionService {
         }
       });
 
-      return session;
+      return convertDatesToTimestamps(session);
     });
   }
 
   async getSessionById(sessionId) {
-    return await prisma.session.findUnique({
+    const session = await prisma.session.findUnique({
       where: { id: sessionId },
       include: {
         host: {
@@ -73,6 +74,7 @@ class SessionService {
         }
       }
     });
+    return convertDatesToTimestamps(session);
   }
 
   async getUserSessions(userId, type = 'all') {
@@ -91,7 +93,7 @@ class SessionService {
       ];
     }
 
-    return await prisma.session.findMany({
+    const sessions = await prisma.session.findMany({
       where,
       include: {
         host: {
@@ -125,6 +127,7 @@ class SessionService {
         scheduledAt: 'desc'
       }
     });
+    return convertDatesToTimestamps(sessions);
   }
 
   async getPublicSessions(filters = {}) {
@@ -133,14 +136,14 @@ class SessionService {
     const where = {
       status,
       scheduledAt: {
-        gte: new Date()
+        gte: BigInt(Date.now())
       }
     };
 
     if (skillId) where.skillId = skillId;
     if (sessionType) where.sessionType = sessionType;
 
-    return await prisma.session.findMany({
+    const sessions = await prisma.session.findMany({
       where,
       include: {
         host: {
@@ -166,6 +169,7 @@ class SessionService {
         scheduledAt: 'asc'
       }
     });
+    return convertDatesToTimestamps(sessions);
   }
 
   async joinSession(sessionId, userId) {
@@ -295,7 +299,7 @@ class SessionService {
             },
             data: {
               isReleased: true,
-              releasedAt: new Date()
+              releasedAt: BigInt(Date.now())
             }
           });
         }
@@ -386,7 +390,7 @@ class SessionService {
             },
             data: {
               isReleased: true,
-              releasedAt: new Date()
+              releasedAt: BigInt(Date.now())
             }
           });
 
@@ -409,7 +413,7 @@ class SessionService {
         where: { id: sessionId },
         data: { 
           status: 'COMPLETED',
-          actualEndTime: new Date()
+          actualEndTime: BigInt(Date.now())
         }
       });
 
