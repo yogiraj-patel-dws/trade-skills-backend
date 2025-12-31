@@ -29,9 +29,15 @@ const getAllowedOrigins = () => {
 const corsOptions = {
   origin: "*",
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'ngrok-skip-browser-warning']
 };
 app.use(cors(corsOptions));
+
+// Handle ngrok browser warning
+app.use((req, res, next) => {
+  res.header('ngrok-skip-browser-warning', 'true');
+  next();
+});
 
 // Rate limiting
 const limiter = rateLimit({
