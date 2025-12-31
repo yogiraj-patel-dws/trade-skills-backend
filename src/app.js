@@ -2,8 +2,10 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
+const path = require('path');
 const ApiResponse = require('./utils/ApiResponse');
 const { swaggerUi, specs } = require('./config/swagger');
+require('./utils/bigintFix'); // Fix BigInt serialization globally
 require('dotenv').config();
 
 const app = express();
@@ -65,6 +67,9 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs, {
   customCss: '.swagger-ui .topbar { display: none }'
 }));
 
+// Serve static files for uploads
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+
 // API Routes
 app.use('/api/public', require('./routes/public'));
 app.use('/api/auth', require('./routes/auth'));
@@ -76,6 +81,7 @@ app.use('/api/payments', require('./routes/payments'));
 app.use('/api/meet', require('./routes/meet'));
 app.use('/api/notifications', require('./routes/notifications'));
 app.use('/api/reports', require('./routes/reports'));
+app.use('/api/reviews', require('./routes/reviews'));
 app.use('/api/admin', require('./routes/admin'));
 app.use('/api/dashboard', require('./routes/dashboard'));
 

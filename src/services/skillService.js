@@ -60,16 +60,17 @@ class SkillService {
 
     return skills.map(skill => ({
       ...skill,
-      createdAt: Number(skill.createdAt),
+      createdAt: skill.createdAt.toString(),
       userSkills: skill.userSkills.map(us => ({
         ...us,
-        createdAt: Number(us.createdAt),
+        createdAt: us.createdAt.toString(),
+        updatedAt: us.updatedAt.toString(),
         user: {
           ...us.user,
           profile: us.user.profile ? {
             ...us.user.profile,
-            createdAt: Number(us.user.profile.createdAt),
-            updatedAt: Number(us.user.profile.updatedAt)
+            createdAt: us.user.profile.createdAt.toString(),
+            updatedAt: us.user.profile.updatedAt.toString()
           } : null
         }
       }))
@@ -77,7 +78,7 @@ class SkillService {
   }
 
   async getSkillById(skillId) {
-    return await prisma.skill.findUnique({
+    const skill = await prisma.skill.findUnique({
       where: { id: skillId },
       include: {
         userSkills: {
@@ -99,6 +100,18 @@ class SkillService {
         }
       }
     });
+    
+    if (!skill) return null;
+    
+    return {
+      ...skill,
+      createdAt: skill.createdAt.toString(),
+      userSkills: skill.userSkills.map(us => ({
+        ...us,
+        createdAt: us.createdAt.toString(),
+        updatedAt: us.updatedAt.toString()
+      }))
+    };
   }
 
   async getSkillCategories() {
@@ -117,7 +130,7 @@ class SkillService {
   }
 
   async searchSkills(query) {
-    return await prisma.skill.findMany({
+    const skills = await prisma.skill.findMany({
       where: {
         isActive: true,
         OR: [
@@ -147,10 +160,20 @@ class SkillService {
       },
       take: 20
     });
+    
+    return skills.map(skill => ({
+      ...skill,
+      createdAt: skill.createdAt.toString(),
+      userSkills: skill.userSkills.map(us => ({
+        ...us,
+        createdAt: us.createdAt.toString(),
+        updatedAt: us.updatedAt.toString()
+      }))
+    }));
   }
 
   async getPopularSkills(limit = 10) {
-    return await prisma.skill.findMany({
+    const skills = await prisma.skill.findMany({
       where: { isActive: true },
       include: {
         userSkills: {
@@ -162,6 +185,16 @@ class SkillService {
       },
       take: limit
     });
+    
+    return skills.map(skill => ({
+      ...skill,
+      createdAt: skill.createdAt.toString(),
+      userSkills: skill.userSkills.map(us => ({
+        ...us,
+        createdAt: us.createdAt.toString(),
+        updatedAt: us.updatedAt.toString()
+      }))
+    }));
   }
 }
 

@@ -69,9 +69,14 @@ const schemas = {
   addSkill: Joi.object({
     skillId: Joi.string().uuid().required(),
     level: Joi.string().valid('BEGINNER', 'INTERMEDIATE', 'ADVANCED', 'EXPERT').required(),
-    yearsOfExperience: Joi.number().min(0).max(50),
-    canTeach: Joi.boolean().required(),
-    wantsToLearn: Joi.boolean().required()
+    
+    // Teaching-specific fields
+    skillTitle: Joi.string().min(5).max(100).required(),
+    bannerImage: Joi.string().uri().optional(),
+    demoVideo: Joi.string().uri().optional(),
+    teachingLanguage: Joi.string().max(100).optional(),
+    prerequisites: Joi.string().max(1000).optional(),
+    subcategory: Joi.string().max(50).optional()
   }),
   
   // Review schemas

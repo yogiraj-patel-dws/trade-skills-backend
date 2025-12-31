@@ -41,30 +41,74 @@ class UserService {
   }
   
   async addSkill(userId, skillData) {
-    const { skillId, level, yearsOfExperience, canTeach, wantsToLearn } = skillData;
+    const { 
+      skillId, 
+      level, 
+      skillTitle,
+      bannerImage,
+      demoVideo,
+      teachingLanguage,
+      prerequisites,
+      subcategory
+    } = skillData;
     
-    return await prisma.userSkill.create({
+    const result = await prisma.userSkill.create({
       data: {
         userId,
         skillId,
         level,
-        yearsOfExperience,
-        canTeach,
-        wantsToLearn
+        canTeach: true, // Default to true since they're adding a teaching skill
+        wantsToLearn: false, // Default to false
+        skillTitle,
+        bannerImage,
+        demoVideo,
+        teachingLanguage,
+        prerequisites,
+        subcategory
       },
       include: {
-        skill: true
+        skill: {
+          select: {
+            id: true,
+            name: true,
+            description: true,
+            category: true,
+            isActive: true
+          }
+        }
       }
     });
+    
+    // Convert BigInt to string for JSON serialization
+    return {
+      ...result,
+      createdAt: result.createdAt.toString(),
+      updatedAt: result.updatedAt.toString()
+    };
   }
   
   async getUserSkills(userId) {
-    return await prisma.userSkill.findMany({
+    const skills = await prisma.userSkill.findMany({
       where: { userId },
       include: {
-        skill: true
+        skill: {
+          select: {
+            id: true,
+            name: true,
+            description: true,
+            category: true,
+            isActive: true
+          }
+        }
       }
     });
+    
+    // Convert BigInt to string for JSON serialization
+    return skills.map(skill => ({
+      ...skill,
+      createdAt: skill.createdAt.toString(),
+      updatedAt: skill.updatedAt.toString()
+    }));
   }
 }
 

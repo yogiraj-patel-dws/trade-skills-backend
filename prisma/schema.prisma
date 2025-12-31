@@ -84,7 +84,17 @@ model UserSkill {
   yearsOfExperience Int?
   canTeach     Boolean     @default(false)
   wantsToLearn Boolean     @default(false)
+  
+  // Teaching-specific fields
+  skillTitle   String?     // Custom title for teaching (e.g. "Master React in 30 Days")
+  bannerImage  String?     // Banner image URL
+  demoVideo    String?     // Demo video URL
+  teachingLanguage String? // e.g. "English, Spanish"
+  prerequisites String?    // Prerequisites & requirements text
+  subcategory  String?     // Subcategory within the skill category
+  
   createdAt    BigInt @default(dbgenerated("extract(epoch from now()) * 1000")) @db.BigInt
+  updatedAt    BigInt @default(dbgenerated("extract(epoch from now()) * 1000")) @db.BigInt
 
   // Relations
   user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)

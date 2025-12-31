@@ -37,6 +37,29 @@ class UserController {
       res.status(500).json(ApiResponse.error('Failed to get user skills', 500));
     }
   }
+  
+  async uploadMedia(req, res) {
+    try {
+      const files = req.files || {};
+      const urls = {};
+      
+      if (files.bannerImage && files.bannerImage[0]) {
+        urls.bannerImage = `/uploads/banners/${files.bannerImage[0].filename}`;
+      }
+      
+      if (files.demoVideo && files.demoVideo[0]) {
+        urls.demoVideo = `/uploads/videos/${files.demoVideo[0].filename}`;
+      }
+      
+      if (Object.keys(urls).length === 0) {
+        return res.status(400).json(ApiResponse.error('No files uploaded', 400));
+      }
+      
+      res.status(200).json(ApiResponse.success(urls, 'Media uploaded successfully', 200));
+    } catch (error) {
+      res.status(400).json(ApiResponse.error(error.message, 400));
+    }
+  }
 }
 
 module.exports = new UserController();

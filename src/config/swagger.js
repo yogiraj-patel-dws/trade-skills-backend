@@ -89,6 +89,34 @@ const options = {
             totalReviews: { type: 'integer', minimum: 0 }
           }
         },
+        UserSkill: {
+          type: 'object',
+          properties: {
+            id: { type: 'string', format: 'uuid' },
+            userId: { type: 'string', format: 'uuid' },
+            skillId: { type: 'string', format: 'uuid' },
+            level: { type: 'string', enum: ['BEGINNER', 'INTERMEDIATE', 'ADVANCED', 'EXPERT'] },
+            yearsOfExperience: { type: 'integer', minimum: 0 },
+            canTeach: { type: 'boolean' },
+            wantsToLearn: { type: 'boolean' },
+            skillTitle: { type: 'string', description: 'Custom teaching title' },
+            bannerImage: { type: 'string', description: 'Banner image URL' },
+            demoVideo: { type: 'string', description: 'Demo video URL' },
+            teachingLanguage: { type: 'string', description: 'Teaching languages' },
+            prerequisites: { type: 'string', description: 'Prerequisites text' },
+            subcategory: { type: 'string', description: 'Skill subcategory' },
+            createdAt: { type: 'string' },
+            updatedAt: { type: 'string' },
+            skill: { $ref: '#/components/schemas/Skill' }
+          }
+        },
+        MediaUploadResponse: {
+          type: 'object',
+          properties: {
+            bannerImage: { type: 'string', description: 'Uploaded banner image URL' },
+            demoVideo: { type: 'string', description: 'Uploaded demo video URL' }
+          }
+        },
         Skill: {
           type: 'object',
           properties: {
@@ -200,6 +228,10 @@ const options = {
       {
         name: 'Reports',
         description: 'User reports and dispute management'
+      },
+      {
+        name: 'Reviews',
+        description: 'User ratings and reviews'
       },
       {
         name: 'Admin',

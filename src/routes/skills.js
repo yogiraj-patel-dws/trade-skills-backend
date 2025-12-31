@@ -27,7 +27,34 @@ const { validate, schemas } = require('../middleware/validation');
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/ApiResponse'
+ *               allOf:
+ *                 - $ref: '#/components/schemas/ApiResponse'
+ *                 - type: object
+ *                   properties:
+ *                     data:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           id: { type: string }
+ *                           name: { type: string }
+ *                           description: { type: string }
+ *                           category: { type: string }
+ *                           isActive: { type: boolean }
+ *                           createdAt: { type: string }
+ *                           userSkills:
+ *                             type: array
+ *                             items:
+ *                               type: object
+ *                               properties:
+ *                                 id: { type: string }
+ *                                 level: { type: string }
+ *                                 skillTitle: { type: string }
+ *                                 bannerImage: { type: string }
+ *                                 demoVideo: { type: string }
+ *                                 teachingLanguage: { type: string }
+ *                                 prerequisites: { type: string }
+ *                                 subcategory: { type: string }
  */
 router.get('/', skillController.getAllSkills);
 
