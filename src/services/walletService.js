@@ -111,6 +111,9 @@ class WalletService {
         throw new Error('Insufficient credits');
       }
 
+      // Convert sessionId to string if it's a number
+      const sessionIdStr = String(sessionId);
+
       // Update wallet
       const updatedWallet = await tx.wallet.update({
         where: { userId },
@@ -124,7 +127,7 @@ class WalletService {
       const creditLock = await tx.creditLock.create({
         data: {
           walletId: wallet.id,
-          sessionId,
+          sessionId: sessionIdStr,
           amount,
           reason
         }

@@ -131,14 +131,18 @@ const options = {
           type: 'object',
           properties: {
             id: { type: 'string', format: 'uuid' },
-            title: { type: 'string' },
-            description: { type: 'string' },
-            sessionType: { type: 'string', enum: ['ONE_ON_ONE', 'ONE_TO_MANY'] },
-            status: { type: 'string', enum: ['PENDING', 'CONFIRMED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED', 'NO_SHOW'] },
-            creditCost: { type: 'integer', minimum: 1 },
-            scheduledAt: { type: 'string', format: 'date-time' },
-            duration: { type: 'integer', minimum: 15 },
-            maxParticipants: { type: 'integer', minimum: 1 }
+            userTeachingSkillId: { type: 'string', format: 'uuid' },
+            learnerId: { type: 'string', format: 'uuid' },
+            hostId: { type: 'string', format: 'uuid' },
+            totalDurationMinutes: { type: 'integer', minimum: 15 },
+            totalCredits: { type: 'integer', minimum: 1 },
+            hostCredits: { type: 'integer', minimum: 0 },
+            adminCredits: { type: 'integer', minimum: 0 },
+            learnerStatus: { type: 'string', enum: ['PENDING', 'CONFIRMED', 'JOINED', 'LEFT', 'CANCELLED'] },
+            hostStatus: { type: 'string', enum: ['PENDING', 'CONFIRMED', 'JOINED', 'LEFT', 'CANCELLED'] },
+            sessionStatus: { type: 'string', enum: ['PENDING', 'CONFIRMED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED', 'NO_SHOW'] },
+            createdAt: { type: 'string' },
+            updatedAt: { type: 'string' }
           }
         },
         Wallet: {
@@ -163,16 +167,14 @@ const options = {
         },
         CreateSessionRequest: {
           type: 'object',
-          required: ['title', 'sessionType', 'creditCost', 'scheduledAt', 'duration'],
+          required: ['userTeachingSkillId', 'learnerId', 'totalDurationMinutes', 'totalCredits', 'hostCredits', 'adminCredits'],
           properties: {
-            title: { type: 'string', minLength: 5, maxLength: 100 },
-            description: { type: 'string', maxLength: 1000 },
-            skillId: { type: 'string', format: 'uuid' },
-            sessionType: { type: 'string', enum: ['ONE_ON_ONE', 'ONE_TO_MANY'] },
-            maxParticipants: { type: 'integer', minimum: 1, maximum: 100 },
-            creditCost: { type: 'integer', minimum: 1 },
-            scheduledAt: { type: 'string', format: 'date-time' },
-            duration: { type: 'integer', minimum: 15, maximum: 480 }
+            userTeachingSkillId: { type: 'string', format: 'uuid', description: 'ID of the UserSkill being taught' },
+            learnerId: { type: 'string', format: 'uuid', description: 'ID of the user who wants to learn' },
+            totalDurationMinutes: { type: 'integer', minimum: 15, maximum: 480, description: 'Session duration in minutes' },
+            totalCredits: { type: 'integer', minimum: 1, description: 'Total credits for the session' },
+            hostCredits: { type: 'integer', minimum: 0, description: 'Credits going to the host' },
+            adminCredits: { type: 'integer', minimum: 0, description: 'Credits going to admin' }
           }
         },
         CreateReportRequest: {

@@ -46,6 +46,7 @@ class AuthService {
       await tx.wallet.create({
         data: {
           userId: user.id,
+          availableCredits: 10, // Give new users 10 free credits
           updatedAt: BigInt(Date.now())
         }
       });
@@ -189,6 +190,7 @@ class AuthService {
         await tx.wallet.create({
           data: {
             userId: newUser.id,
+            availableCredits: 10, // Give new users 10 free credits
             updatedAt: BigInt(Date.now())
           }
         });

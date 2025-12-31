@@ -37,45 +37,12 @@ class SessionController {
     }
   }
 
-  async getPublicSessions(req, res) {
-    try {
-      const { skillId, sessionType } = req.query;
-      const sessions = await sessionService.getPublicSessions({ skillId, sessionType });
-      
-      res.status(200).json(ApiResponse.success(sessions, 'Public sessions retrieved', 200));
-    } catch (error) {
-      res.status(500).json(ApiResponse.error('Failed to get public sessions', 500));
-    }
-  }
-
-  async joinSession(req, res) {
+  async updateSessionStatus(req, res) {
     try {
       const { id } = req.params;
-      const result = await sessionService.joinSession(id, req.user.id);
-      
-      res.status(200).json(ApiResponse.success(result, 'Successfully joined session', 200));
-    } catch (error) {
-      res.status(400).json(ApiResponse.error(error.message, 400));
-    }
-  }
-
-  async cancelSession(req, res) {
-    try {
-      const { id } = req.params;
-      const result = await sessionService.cancelSession(id, req.user.id);
-      
-      res.status(200).json(ApiResponse.success(result, 'Session cancelled successfully', 200));
-    } catch (error) {
-      res.status(400).json(ApiResponse.error(error.message, 400));
-    }
-  }
-
-  async completeSession(req, res) {
-    try {
-      const { id } = req.params;
-      const result = await sessionService.completeSession(id, req.user.id);
-      
-      res.status(200).json(ApiResponse.success(result, 'Session completed successfully', 200));
+      const { status } = req.body;
+      const session = await sessionService.updateSessionStatus(id, status, req.user.id);
+      res.status(200).json(ApiResponse.success({ session }, 'Session status updated', 200));
     } catch (error) {
       res.status(400).json(ApiResponse.error(error.message, 400));
     }

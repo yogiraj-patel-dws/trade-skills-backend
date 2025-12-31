@@ -19,8 +19,14 @@ class PaymentService {
   }
 
   async createPaymentOrder(userId, packageId) {
-    const paymentPackage = await prisma.paymentPackage.findUnique({
-      where: { id: packageId, isActive: true }
+    // Convert packageId to string if it's a number
+    const packageIdStr = String(packageId);
+    
+    const paymentPackage = await prisma.paymentPackage.findFirst({
+      where: { 
+        id: packageIdStr,
+        isActive: true 
+      }
     });
 
     if (!paymentPackage) {
@@ -45,13 +51,14 @@ class PaymentService {
     const payment = await prisma.payment.create({
       data: {
         userId,
-        packageId,
+        packageId: packageIdStr,
         amount: paymentPackage.price,
         currency: paymentPackage.currency,
         gateway: 'RAZORPAY',
         gatewayOrderId: razorpayOrder.id,
         status: 'PENDING',
-        creditsAwarded: paymentPackage.credits
+        creditsAwarded: paymentPackage.credits,
+        updatedAt: BigInt(Date.now())
       }
     });
 

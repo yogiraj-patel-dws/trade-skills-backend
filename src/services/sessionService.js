@@ -2,98 +2,27 @@ const prisma = require('../config/database');
 
 class SessionService {
   async createSession(hostId, sessionData) {
-    const { title, description, skillId, sessionType, maxParticipants, creditCost, scheduledAt, duration } = sessionData;
+    const { 
+      skillId, 
+      duration,
+      creditsRequired
+    } = sessionData;
     
-    return await prisma.$transaction(async (tx) => {
-      // Create session
-      const session = await tx.session.create({
-        data: {
-          title,
-          description,
-          hostId,
-          skillId,
-          sessionType,
-          maxParticipants: sessionType === 'ONE_TO_MANY' ? maxParticipants : 1,
-          creditCost,
-          scheduledAt: BigInt(scheduledAt),
-          duration,
-          status: 'PENDING'
-        },
-        include: {
-          host: {
-            select: {
-              id: true,
-              profile: {
-                select: {
-                  firstName: true,
-                  lastName: true,
-                  rating: true
-                }
-              }
-            }
-          }
-        }
-      });
-
-      return session;
-    });
-  }
-
-  async getSessionById(sessionId) {
-    const session = await prisma.session.findUnique({
-      where: { id: sessionId },
-      include: {
-        host: {
-          select: {
-            id: true,
-            profile: {
-              select: {
-                firstName: true,
-                lastName: true,
-                rating: true,
-                totalReviews: true
-              }
-            }
-          }
-        },
-        participants: {
-          include: {
-            user: {
-              select: {
-                id: true,
-                profile: {
-                  select: {
-                    firstName: true,
-                    lastName: true
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    });
-    return session;
-  }
-
-  async getUserSessions(userId, type = 'all') {
-    const where = {};
-    
-    if (type === 'hosted') {
-      where.hostId = userId;
-    } else if (type === 'joined') {
-      where.participants = {
-        some: { userId }
-      };
-    } else {
-      where.OR = [
-        { hostId: userId },
-        { participants: { some: { userId } } }
-      ];
-    }
-
-    const sessions = await prisma.session.findMany({
-      where,
+    // Create a basic session with the current schema
+    const session = await prisma.session.create({
+      data: {
+        userTeachingSkillId: skillId, // Using skillId as userTeachingSkillId for now
+        learnerId: hostId, // Same user for testing
+        hostId: hostId,
+        totalDurationMinutes: duration,
+        totalCredits: creditsRequired,
+        hostCredits: Math.floor(creditsRequired * 0.8),
+        adminCredits: Math.floor(creditsRequired * 0.2),
+        learnerStatus: 'PENDING',
+        hostStatus: 'PENDING',
+        sessionStatus: 'PENDING',
+        updatedAt: BigInt(Date.now())
+      },
       include: {
         host: {
           select: {
@@ -106,44 +35,32 @@ class SessionService {
             }
           }
         },
-        participants: {
-          include: {
-            user: {
+        learner: {
+          select: {
+            id: true,
+            profile: {
               select: {
-                id: true,
-                profile: {
-                  select: {
-                    firstName: true,
-                    lastName: true
-                  }
-                }
+                firstName: true,
+                lastName: true
               }
             }
           }
         }
-      },
-      orderBy: {
-        scheduledAt: 'desc'
       }
     });
-    return sessions;
-  }
-
-  async getPublicSessions(filters = {}) {
-    const { skillId, sessionType, status = 'PENDING' } = filters;
     
-    const where = {
-      status,
-      scheduledAt: {
-        gte: BigInt(Date.now())
+    return {
+      session: {
+        ...session,
+        createdAt: Number(session.createdAt),
+        updatedAt: Number(session.updatedAt)
       }
     };
-
-    if (skillId) where.skillId = skillId;
-    if (sessionType) where.sessionType = sessionType;
-
-    const sessions = await prisma.session.findMany({
-      where,
+  }
+  
+  async getSessionById(sessionId) {
+    const session = await prisma.session.findUnique({
+      where: { id: sessionId },
       include: {
         host: {
           select: {
@@ -151,273 +68,138 @@ class SessionService {
             profile: {
               select: {
                 firstName: true,
-                lastName: true,
-                rating: true
+                lastName: true
               }
             }
           }
         },
-        participants: {
+        learner: {
           select: {
             id: true,
-            status: true
+            profile: {
+              select: {
+                firstName: true,
+                lastName: true
+              }
+            }
+          }
+        },
+        userSkill: {
+          include: {
+            skill: true
           }
         }
-      },
-      orderBy: {
-        scheduledAt: 'asc'
       }
     });
-    return sessions;
+    
+    if (!session) return null;
+    
+    return {
+      ...session,
+      createdAt: Number(session.createdAt),
+      updatedAt: Number(session.updatedAt)
+    };
   }
-
-  async joinSession(sessionId, userId) {
-    return await prisma.$transaction(async (tx) => {
-      // Check session availability
-      const session = await tx.session.findUnique({
-        where: { id: sessionId },
-        include: {
-          participants: true
-        }
+  
+  async getUserSessions(userId, type = 'all') {
+    try {
+      let where = {};
+      
+      if (type === 'hosted') {
+        where.hostId = userId;
+      } else if (type === 'learning') {
+        where.learnerId = userId;
+      } else {
+        where.OR = [
+          { hostId: userId },
+          { learnerId: userId }
+        ];
+      }
+      
+      const sessions = await prisma.session.findMany({
+        where,
+        orderBy: { createdAt: 'desc' }
       });
-
-      if (!session) {
-        throw new Error('Session not found');
-      }
-
-      if (session.status !== 'PENDING') {
-        throw new Error('Session is not available for joining');
-      }
-
-      if (session.hostId === userId) {
-        throw new Error('Cannot join your own session');
-      }
-
-      // Check if already joined
-      const existingParticipant = session.participants.find(p => p.userId === userId);
-      if (existingParticipant) {
-        throw new Error('Already joined this session');
-      }
-
-      // Check capacity for group sessions
-      if (session.sessionType === 'ONE_TO_MANY' && session.participants.length >= session.maxParticipants) {
-        throw new Error('Session is full');
-      }
-
-      // Check user's wallet balance
-      const wallet = await tx.wallet.findUnique({
-        where: { userId }
-      });
-
-      if (!wallet || wallet.availableCredits < session.creditCost) {
-        throw new Error('Insufficient credits');
-      }
-
-      // Lock credits
-      await tx.wallet.update({
-        where: { userId },
-        data: {
-          availableCredits: { decrement: session.creditCost },
-          lockedCredits: { increment: session.creditCost }
-        }
-      });
-
-      // Create credit lock record
-      await tx.creditLock.create({
-        data: {
-          walletId: wallet.id,
-          sessionId,
-          amount: session.creditCost,
-          reason: 'Session booking'
-        }
-      });
-
-      // Add participant
-      const participant = await tx.sessionParticipant.create({
-        data: {
-          sessionId,
-          userId,
-          status: 'CONFIRMED'
-        }
-      });
-
-      // Update session status if needed
-      if (session.sessionType === 'ONE_ON_ONE') {
-        await tx.session.update({
-          where: { id: sessionId },
-          data: { status: 'CONFIRMED' }
-        });
-      }
-
-      return participant;
+      
+      return sessions.map(session => ({
+        ...session,
+        createdAt: Number(session.createdAt),
+        updatedAt: Number(session.updatedAt)
+      }));
+    } catch (error) {
+      console.error('Error in getUserSessions:', error);
+      return [];
+    }
+  }
+  
+  async updateSessionStatus(sessionId, status, userId) {
+    const session = await prisma.session.findUnique({
+      where: { id: sessionId }
     });
-  }
-
-  async cancelSession(sessionId, userId) {
-    return await prisma.$transaction(async (tx) => {
-      const session = await tx.session.findUnique({
-        where: { id: sessionId },
-        include: {
-          participants: true
-        }
-      });
-
-      if (!session) {
-        throw new Error('Session not found');
-      }
-
-      if (session.hostId !== userId) {
-        throw new Error('Only host can cancel session');
-      }
-
-      if (session.status === 'COMPLETED' || session.status === 'CANCELLED') {
-        throw new Error('Cannot cancel this session');
-      }
-
-      // Refund credits to all participants
-      for (const participant of session.participants) {
-        const wallet = await tx.wallet.findUnique({
-          where: { userId: participant.userId }
-        });
-
-        if (wallet) {
-          await tx.wallet.update({
-            where: { userId: participant.userId },
-            data: {
-              availableCredits: { increment: session.creditCost },
-              lockedCredits: { decrement: session.creditCost }
+    
+    if (!session) {
+      throw new Error('Session not found');
+    }
+    
+    // Check if user is host or learner
+    if (session.hostId !== userId && session.learnerId !== userId) {
+      throw new Error('Unauthorized to update this session');
+    }
+    
+    const updateData = {};
+    
+    if (session.hostId === userId) {
+      updateData.hostStatus = status;
+    } else {
+      updateData.learnerStatus = status;
+    }
+    
+    // Update overall session status based on individual statuses
+    if (status === 'CONFIRMED') {
+      updateData.sessionStatus = 'CONFIRMED';
+    } else if (status === 'CANCELLED') {
+      updateData.sessionStatus = 'CANCELLED';
+    }
+    
+    const updatedSession = await prisma.session.update({
+      where: { id: sessionId },
+      data: updateData,
+      include: {
+        host: {
+          select: {
+            id: true,
+            profile: {
+              select: {
+                firstName: true,
+                lastName: true
+              }
             }
-          });
-
-          // Release credit locks
-          await tx.creditLock.updateMany({
-            where: {
-              walletId: wallet.id,
-              sessionId,
-              isReleased: false
-            },
-            data: {
-              isReleased: true,
-              releasedAt: BigInt(Date.now())
-            }
-          });
-        }
-      }
-
-      // Update session status
-      await tx.session.update({
-        where: { id: sessionId },
-        data: { status: 'CANCELLED' }
-      });
-
-      return { message: 'Session cancelled and credits refunded' };
-    });
-  }
-
-  async completeSession(sessionId, hostId) {
-    return await prisma.$transaction(async (tx) => {
-      const session = await tx.session.findUnique({
-        where: { id: sessionId },
-        include: {
-          participants: true
-        }
-      });
-
-      if (!session) {
-        throw new Error('Session not found');
-      }
-
-      if (session.hostId !== hostId) {
-        throw new Error('Only host can complete session');
-      }
-
-      if (session.status !== 'IN_PROGRESS') {
-        throw new Error('Session must be in progress to complete');
-      }
-
-      // Calculate total earnings
-      const totalEarnings = session.participants.length * session.creditCost;
-
-      // Transfer credits to host
-      const hostWallet = await tx.wallet.findUnique({
-        where: { userId: hostId }
-      });
-
-      if (hostWallet) {
-        await tx.wallet.update({
-          where: { userId: hostId },
-          data: {
-            availableCredits: { increment: totalEarnings },
-            totalEarned: { increment: totalEarnings }
           }
-        });
-
-        // Create earning transaction
-        await tx.transaction.create({
-          data: {
-            walletId: hostWallet.id,
-            sessionId,
-            type: 'SESSION_EARNING',
-            amount: totalEarnings,
-            description: `Earnings from session: ${session.title}`,
-            status: 'COMPLETED'
+        },
+        learner: {
+          select: {
+            id: true,
+            profile: {
+              select: {
+                firstName: true,
+                lastName: true
+              }
+            }
           }
-        });
-      }
-
-      // Release credit locks and create payment transactions
-      for (const participant of session.participants) {
-        const wallet = await tx.wallet.findUnique({
-          where: { userId: participant.userId }
-        });
-
-        if (wallet) {
-          await tx.wallet.update({
-            where: { userId: participant.userId },
-            data: {
-              lockedCredits: { decrement: session.creditCost },
-              totalSpent: { increment: session.creditCost }
-            }
-          });
-
-          // Release credit locks
-          await tx.creditLock.updateMany({
-            where: {
-              walletId: wallet.id,
-              sessionId,
-              isReleased: false
-            },
-            data: {
-              isReleased: true,
-              releasedAt: BigInt(Date.now())
-            }
-          });
-
-          // Create payment transaction
-          await tx.transaction.create({
-            data: {
-              walletId: wallet.id,
-              sessionId,
-              type: 'SESSION_PAYMENT',
-              amount: -session.creditCost,
-              description: `Payment for session: ${session.title}`,
-              status: 'COMPLETED'
-            }
-          });
+        },
+        userSkill: {
+          include: {
+            skill: true
+          }
         }
       }
-
-      // Update session status
-      await tx.session.update({
-        where: { id: sessionId },
-        data: { 
-          status: 'COMPLETED',
-          actualEndTime: BigInt(Date.now())
-        }
-      });
-
-      return { message: 'Session completed successfully' };
     });
+    
+    return {
+      ...updatedSession,
+      createdAt: Number(updatedSession.createdAt),
+      updatedAt: Number(updatedSession.updatedAt)
+    };
   }
 }
 

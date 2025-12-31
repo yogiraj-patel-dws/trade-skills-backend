@@ -45,24 +45,22 @@ const schemas = {
   
   // User profile schemas
   updateProfile: Joi.object({
-    firstName: Joi.string().min(2).max(50),
-    lastName: Joi.string().min(2).max(50),
-    bio: Joi.string().max(500),
-    phoneNumber: Joi.string().pattern(/^[+]?[1-9][\d]{0,15}$/),
-    timezone: Joi.string(),
-    availability: Joi.object()
+    firstName: Joi.string().min(2).max(50).optional(),
+    lastName: Joi.string().min(2).max(50).optional(),
+    bio: Joi.string().max(500).optional(),
+    phoneNumber: Joi.string().pattern(/^[+]?[1-9][\d]{0,15}$/).optional(),
+    timezone: Joi.string().optional(),
+    availability: Joi.object().optional()
   }),
   
   // Session schemas
   createSession: Joi.object({
     title: Joi.string().min(5).max(100).required(),
-    description: Joi.string().max(1000),
-    skillId: Joi.string().uuid(),
-    sessionType: Joi.string().valid('ONE_ON_ONE', 'ONE_TO_MANY').required(),
-    maxParticipants: Joi.number().min(1).max(100),
-    creditCost: Joi.number().min(1).required(),
-    scheduledAt: Joi.date().greater('now').required(),
-    duration: Joi.number().min(15).max(480).required() // 15 minutes to 8 hours
+    description: Joi.string().min(10).max(500).required(),
+    skillId: Joi.string().uuid().required(),
+    duration: Joi.number().min(15).max(480).required(),
+    creditsRequired: Joi.number().min(1).required(),
+    scheduledAt: Joi.date().iso().required()
   }),
   
   // Skill schemas

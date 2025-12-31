@@ -44,37 +44,13 @@ router.post('/', validate(schemas.createSession), sessionController.createSessio
  *         name: type
  *         schema:
  *           type: string
- *           enum: [all, hosted, joined]
+ *           enum: [all, hosted, learning]
  *           default: all
  *     responses:
  *       200:
  *         description: User sessions retrieved
  */
 router.get('/my', sessionController.getUserSessions);
-
-/**
- * @swagger
- * /api/sessions/public:
- *   get:
- *     summary: Get public available sessions
- *     tags: [Sessions]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: query
- *         name: skillId
- *         schema:
- *           type: string
- *       - in: query
- *         name: sessionType
- *         schema:
- *           type: string
- *           enum: [ONE_ON_ONE, ONE_TO_MANY]
- *     responses:
- *       200:
- *         description: Public sessions retrieved
- */
-router.get('/public', sessionController.getPublicSessions);
 
 /**
  * @swagger
@@ -100,9 +76,9 @@ router.get('/:id', sessionController.getSessionById);
 
 /**
  * @swagger
- * /api/sessions/{id}/join:
- *   post:
- *     summary: Join a session
+ * /api/sessions/{id}/status:
+ *   put:
+ *     summary: Update session status
  *     tags: [Sessions]
  *     security:
  *       - bearerAuth: []
@@ -112,56 +88,24 @@ router.get('/:id', sessionController.getSessionById);
  *         required: true
  *         schema:
  *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - status
+ *             properties:
+ *               status:
+ *                 type: string
+ *                 enum: [PENDING, CONFIRMED, JOINED, LEFT, CANCELLED]
  *     responses:
  *       200:
- *         description: Successfully joined session
+ *         description: Session status updated successfully
  *       400:
- *         description: Cannot join session (insufficient credits, full, etc.)
+ *         description: Cannot update session status
  */
-router.post('/:id/join', sessionController.joinSession);
-
-/**
- * @swagger
- * /api/sessions/{id}/cancel:
- *   post:
- *     summary: Cancel a session (host only)
- *     tags: [Sessions]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: Session cancelled successfully
- *       400:
- *         description: Cannot cancel session
- */
-router.post('/:id/cancel', sessionController.cancelSession);
-
-/**
- * @swagger
- * /api/sessions/{id}/complete:
- *   post:
- *     summary: Complete a session (host only)
- *     tags: [Sessions]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: Session completed successfully
- *       400:
- *         description: Cannot complete session
- */
-router.post('/:id/complete', sessionController.completeSession);
+router.put('/:id/status', sessionController.updateSessionStatus);
 
 module.exports = router;

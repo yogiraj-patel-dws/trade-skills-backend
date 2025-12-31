@@ -30,7 +30,7 @@ model User {
   userSkills    UserSkill[]
   wallet        Wallet?
   hostedSessions Session[] @relation("SessionHost")
-  participantSessions SessionParticipant[]
+  learningSessions Session[] @relation("SessionLearner")
   sentReviews   Review[] @relation("ReviewSender")
   receivedReviews Review[] @relation("ReviewReceiver")
   reports       Report[]
@@ -99,6 +99,7 @@ model UserSkill {
   // Relations
   user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
   skill Skill @relation(fields: [skillId], references: [id], onDelete: Cascade)
+  sessions Session[]
 
   @@unique([userId, skillId])
   @@map("user_skills")
@@ -106,47 +107,27 @@ model UserSkill {
 
 // Session Management
 model Session {
-  id          String        @id @default(uuid())
-  title       String
-  description String?
-  hostId      String
-  skillId     String?
-  sessionType SessionType
-  status      SessionStatus @default(PENDING)
-  maxParticipants Int?
-  creditCost  Int
-  scheduledAt BigInt @db.BigInt
-  duration    Int           // Duration in minutes
-  meetingLink String?
-  meetingId   String?
-  actualStartTime BigInt? @db.BigInt
-  actualEndTime BigInt? @db.BigInt
-  createdAt   BigInt @default(dbgenerated("extract(epoch from now()) * 1000")) @db.BigInt
-  updatedAt   BigInt @db.BigInt
+  id                    String        @id @default(uuid())
+  userTeachingSkillId   String        // Reference to UserSkill
+  learnerId             String        // User who wants to learn
+  hostId                String        // User who is teaching
+  totalDurationMinutes  Int           // Total session duration
+  totalCredits          Int           // Total credits for session
+  hostCredits           Int           // Credits going to host
+  adminCredits          Int           // Credits going to admin
+  learnerStatus         ParticipantStatus @default(PENDING)
+  hostStatus            ParticipantStatus @default(PENDING)
+  sessionStatus         SessionStatus @default(PENDING)
+  createdAt             BigInt @default(dbgenerated("extract(epoch from now()) * 1000")) @db.BigInt
+  updatedAt             BigInt @default(dbgenerated("extract(epoch from now()) * 1000")) @db.BigInt
 
   // Relations
   host         User @relation("SessionHost", fields: [hostId], references: [id])
-  participants SessionParticipant[]
+  learner      User @relation("SessionLearner", fields: [learnerId], references: [id])
+  userSkill    UserSkill @relation(fields: [userTeachingSkillId], references: [id])
   transactions Transaction[]
 
   @@map("sessions")
-}
-
-model SessionParticipant {
-  id        String              @id @default(uuid())
-  sessionId String
-  userId    String
-  status    ParticipantStatus   @default(PENDING)
-  joinedAt  BigInt? @db.BigInt
-  leftAt    BigInt? @db.BigInt
-  createdAt BigInt @default(dbgenerated("extract(epoch from now()) * 1000")) @db.BigInt
-
-  // Relations
-  session Session @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([sessionId, userId])
-  @@map("session_participants")
 }
 
 // Credit & Wallet System
@@ -325,11 +306,6 @@ enum SkillLevel {
   INTERMEDIATE
   ADVANCED
   EXPERT
-}
-
-enum SessionType {
-  ONE_ON_ONE
-  ONE_TO_MANY
 }
 
 enum SessionStatus {
