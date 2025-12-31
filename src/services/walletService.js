@@ -26,40 +26,30 @@ class WalletService {
   }
 
   async getTransactions(userId, filters = {}) {
-    const { type, limit = 20, offset = 0 } = filters;
-    
-    const wallet = await prisma.wallet.findUnique({
-      where: { userId }
-    });
+    try {
+      const { type, limit = 20, offset = 0 } = filters;
+      
+      const wallet = await prisma.wallet.findUnique({
+        where: { userId }
+      });
 
-    if (!wallet) {
-      throw new Error('Wallet not found');
+      if (!wallet) {
+        return [];
+      }
+
+      const where = { walletId: wallet.id };
+      if (type) where.type = type;
+
+      return await prisma.transaction.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        take: parseInt(limit),
+        skip: parseInt(offset)
+      });
+    } catch (error) {
+      console.error('Error in getTransactions:', error);
+      return [];
     }
-
-    const where = { walletId: wallet.id };
-    if (type) where.type = type;
-
-    return await prisma.transaction.findMany({
-      where,
-      include: {
-        session: {
-          select: {
-            id: true,
-            title: true
-          }
-        },
-        payment: {
-          select: {
-            id: true,
-            amount: true,
-            gateway: true
-          }
-        }
-      },
-      orderBy: { createdAt: 'desc' },
-      take: parseInt(limit),
-      skip: parseInt(offset)
-    });
   }
 
   async addCredits(userId, amount, description = 'Credits added', paymentId = null) {
