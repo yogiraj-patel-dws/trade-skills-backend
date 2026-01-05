@@ -216,4 +216,10 @@ router.post('/upload-media',
   userController.uploadMedia
 );
 
+// Update skill
+router.put('/skills/:id', userController.updateSkill);
+
+// Delete skill
+router.delete('/skills/:id', userController.deleteSkill);
+
 module.exports = router;

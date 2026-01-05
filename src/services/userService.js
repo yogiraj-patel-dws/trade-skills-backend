@@ -1,3 +1,4 @@
+const { level } = require('winston');
 const prisma = require('../config/database');
 
 class UserService {
@@ -90,25 +91,62 @@ class UserService {
   async getUserSkills(userId) {
     const skills = await prisma.userSkill.findMany({
       where: { userId },
-      include: {
+      select: {
+        id: true,
+        teachingLanguage: true,
+        bannerImage: true,
+        skillTitle: true,
+        level: true,
         skill: {
           select: {
-            id: true,
-            name: true,
-            description: true,
-            category: true,
-            isActive: true
+            category: true
           }
         }
       }
     });
     
-    // Convert BigInt to string for JSON serialization
     return skills.map(skill => ({
-      ...skill,
-      createdAt: skill.createdAt.toString(),
-      updatedAt: skill.updatedAt.toString()
+      id: skill.id,
+      teachingLanguage: skill.teachingLanguage,
+      category: skill.skill.category,
+      level: skill.level,
+      bannerImage: skill.bannerImage,
+      skillTitle: skill.skillTitle
     }));
+  }
+  
+  async updateUserSkill(userId, userSkillId, updateData) {
+    const existingSkill = await prisma.userSkill.findFirst({
+      where: { id: userSkillId, userId }
+    });
+    
+    if (!existingSkill) {
+      throw new Error('User skill not found');
+    }
+    
+    return await prisma.userSkill.update({
+      where: { id: userSkillId },
+      data: {
+        ...updateData,
+        updatedAt: BigInt(Date.now())
+      }
+    });
+  }
+  
+  async deleteUserSkill(userId, userSkillId) {
+    const existingSkill = await prisma.userSkill.findFirst({
+      where: { id: userSkillId, userId }
+    });
+    
+    if (!existingSkill) {
+      throw new Error('User skill not found');
+    }
+    
+    await prisma.userSkill.delete({
+      where: { id: userSkillId }
+    });
+    
+    return { message: 'User skill deleted successfully' };
   }
 }
 

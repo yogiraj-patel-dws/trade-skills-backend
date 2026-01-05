@@ -2,22 +2,32 @@ const prisma = require('../config/database');
 
 class LandingPageService {
   async getAnalytics() {
-    // Get platform statistics
-    const [userCount, sessionCount, skillCount] = await Promise.all([
-      prisma.user.count({ where: { isActive: true } }),
-      prisma.session.count({ where: { status: 'COMPLETED' } }),
-      prisma.skill.count({ where: { isActive: true } })
-    ]);
+    try {
+      // Get platform statistics
+      const [userCount, sessionCount, skillCount] = await Promise.all([
+        prisma.user.count({ where: { isActive: true } }),
+        prisma.session.count({ where: { sessionStatus: 'COMPLETED' } }),
+        prisma.skill.count({ where: { isActive: true } })
+      ]);
 
-    // Calculate community rating (mock for now)
-    const communityRating = 4.9;
+      // Calculate community rating (mock for now)
+      const communityRating = 4.9;
 
-    return {
-      activeTeachers: userCount > 0 ? `${Math.floor(userCount * 0.6)}+` : '10+',
-      skillsExchanged: sessionCount > 0 ? `${sessionCount}+` : '50+',
-      communityRating: communityRating,
-      countries: '120+'
-    };
+      return {
+        activeTeachers: userCount > 0 ? `${Math.floor(userCount * 0.6)}+` : '10+',
+        skillsExchanged: sessionCount > 0 ? `${sessionCount}+` : '50+',
+        communityRating: communityRating,
+        countries: '120+'
+      };
+    } catch (error) {
+      console.error('Error in getAnalytics:', error);
+      return {
+        activeTeachers: '10+',
+        skillsExchanged: '50+',
+        communityRating: 4.9,
+        countries: '120+'
+      };
+    }
   }
 
   async getPopularSkills() {

@@ -14,156 +14,144 @@ class DashboardService {
       }
     });
 
-    // Get upcoming sessions (next 7 days)
-    const upcomingSessions = await prisma.sessionParticipant.findMany({
-      where: {
-        userId,
-        status: 'CONFIRMED',
-        session: {
-          scheduledAt: {
-            gte: BigInt(now),
-            lte: BigInt(now + (7 * 24 * 60 * 60 * 1000))
+      // Get upcoming sessions where user is learner
+      const upcomingSessions = await prisma.session.findMany({
+        where: {
+          learnerId: userId,
+          sessionStatus: { in: ['PENDING', 'CONFIRMED'] },
+          createdAt: {
+            gte: BigInt(now)
+          }
+        },
+        include: {
+          host: {
+            include: { profile: true }
+          }
+        },
+        orderBy: { createdAt: 'asc' },
+        take: 5
+      });
+
+      // Get sessions taught this week
+      const sessionsTaughtThisWeek = await prisma.session.count({
+        where: {
+          hostId: userId,
+          sessionStatus: 'COMPLETED',
+          updatedAt: {
+            gte: BigInt(weekStart)
           }
         }
-      },
-      include: {
-        session: {
-          include: {
-            host: {
-              include: { profile: true }
-            }
+      });
+
+      // Get total sessions taught
+      const totalSessionsTaught = await prisma.session.count({
+        where: {
+          hostId: userId,
+          sessionStatus: 'COMPLETED'
+        }
+      });
+
+      // Get skills learned (user skills count)
+      const skillsLearned = await prisma.userSkill.count({
+        where: {
+          userId,
+          wantsToLearn: true
+        }
+      });
+
+      // Get recommended sessions (available sessions from other hosts)
+      const recommendedSessions = await prisma.session.findMany({
+        where: {
+          sessionStatus: 'PENDING',
+          hostId: {
+            not: userId
           }
-        }
-      },
-      orderBy: {
-        session: { scheduledAt: 'asc' }
-      }
-    });
-
-    // Get sessions taught this week
-    const sessionsTaughtThisWeek = await prisma.session.count({
-      where: {
-        hostId: userId,
-        status: 'COMPLETED',
-        actualEndTime: {
-          gte: BigInt(weekStart)
-        }
-      }
-    });
-
-    // Get total sessions taught
-    const totalSessionsTaught = await prisma.session.count({
-      where: {
-        hostId: userId,
-        status: 'COMPLETED'
-      }
-    });
-
-    // Get skills learned (user skills count)
-    const skillsLearned = await prisma.userSkill.count({
-      where: {
-        userId,
-        wantsToLearn: true
-      }
-    });
-
-    // Get recommended sessions (popular skills user doesn't have)
-    const recommendedSessions = await prisma.session.findMany({
-      where: {
-        status: 'PENDING',
-        scheduledAt: {
-          gte: BigInt(now)
         },
-        hostId: {
-          not: userId
-        }
-      },
-      include: {
-        host: {
-          include: { profile: true }
-        }
-      },
-      take: 3,
-      orderBy: { createdAt: 'desc' }
-    });
-
-    // Get recent community activity (recent sessions and reviews)
-    const recentActivity = await prisma.session.findMany({
-      where: {
-        status: 'COMPLETED',
-        actualEndTime: {
-          gte: BigInt(now - (24 * 60 * 60 * 1000)) // Last 24 hours
-        }
-      },
-      include: {
-        host: {
-          include: { profile: true }
-        },
-        participants: {
-          include: {
-            user: {
-              include: { profile: true }
-            }
+        include: {
+          host: {
+            include: { profile: true }
+          },
+          userSkill: {
+            include: { skill: true }
           }
-        }
-      },
-      take: 5,
-      orderBy: { actualEndTime: 'desc' }
-    });
+        },
+        take: 3,
+        orderBy: { createdAt: 'desc' }
+      });
 
-    return {
-      user: {
-        id: user.id,
-        email: user.email,
-        profile: user.profile ? {
-          ...user.profile,
-          createdAt: Number(user.profile.createdAt),
-          updatedAt: Number(user.profile.updatedAt)
-        } : null
-      },
-      stats: {
-        availableCredits: user.wallet?.availableCredits || 0,
-        creditsChangeThisWeek: 2, // Mock data - would need transaction tracking
-        sessionsTaught: totalSessionsTaught,
-        sessionsTaughtThisWeek,
-        skillsLearned,
-        upcomingSessionsCount: upcomingSessions.length
-      },
-      upcomingSessions: upcomingSessions.map(participant => ({
-        id: participant.session.id,
-        title: participant.session.title,
-        scheduledAt: Number(participant.session.scheduledAt),
-        duration: participant.session.duration,
-        host: {
-          name: `${participant.session.host.profile?.firstName} ${participant.session.host.profile?.lastName}`,
-          profilePicture: participant.session.host.profile?.profilePicture
+      // Get recent community activity (recent completed sessions)
+      const recentActivity = await prisma.session.findMany({
+        where: {
+          sessionStatus: 'COMPLETED',
+          updatedAt: {
+            gte: BigInt(now - (24 * 60 * 60 * 1000)) // Last 24 hours
+          }
         },
-        meetingLink: participant.session.meetingLink,
-        status: participant.session.status
-      })),
-      recommendedSessions: recommendedSessions.map(session => ({
-        id: session.id,
-        title: session.title,
-        description: session.description,
-        creditCost: session.creditCost,
-        host: {
-          name: `${session.host.profile?.firstName} ${session.host.profile?.lastName}`,
-          profilePicture: session.host.profile?.profilePicture
+        include: {
+          host: {
+            include: { profile: true }
+          },
+          learner: {
+            include: { profile: true }
+          }
         },
-        scheduledAt: Number(session.scheduledAt),
-        rating: 4.5 // Mock rating - would need review aggregation
-      })),
-      communityActivity: recentActivity.map(session => ({
-        type: 'session_completed',
+        take: 5,
+        orderBy: { updatedAt: 'desc' }
+      });
+
+      return {
         user: {
-          name: `${session.host.profile?.firstName} ${session.host.profile?.lastName}`,
-          profilePicture: session.host.profile?.profilePicture
+          id: user.id,
+          email: user.email,
+          profile: user.profile ? {
+            ...user.profile,
+            createdAt: Number(user.profile.createdAt),
+            updatedAt: Number(user.profile.updatedAt)
+          } : null
         },
-        action: `completed session "${session.title}"`,
-        timestamp: Number(session.actualEndTime),
-        timeAgo: this.getTimeAgo(Number(session.actualEndTime))
-      }))
-    };
+        stats: {
+          availableCredits: user.wallet?.availableCredits || 0,
+          creditsChangeThisWeek: 0, // Would need transaction tracking
+          sessionsTaught: totalSessionsTaught,
+          sessionsTaughtThisWeek,
+          skillsLearned,
+          upcomingSessionsCount: upcomingSessions.length
+        },
+        upcomingSessions: upcomingSessions.map(session => ({
+          id: session.id,
+          title: `Session with ${session.host.profile?.firstName || 'Host'}`,
+          scheduledAt: Number(session.createdAt),
+          duration: session.totalDurationMinutes,
+          host: {
+            name: `${session.host.profile?.firstName || ''} ${session.host.profile?.lastName || ''}`.trim(),
+            profilePicture: session.host.profile?.profilePicture
+          },
+          status: session.sessionStatus,
+          credits: session.totalCredits
+        })),
+        recommendedSessions: recommendedSessions.map(session => ({
+          id: session.id,
+          title: `Learn ${session.userSkill?.skill?.name || 'New Skill'}`,
+          description: session.userSkill?.skill?.description || 'Skill learning session',
+          creditCost: session.totalCredits,
+          host: {
+            name: `${session.host.profile?.firstName || ''} ${session.host.profile?.lastName || ''}`.trim(),
+            profilePicture: session.host.profile?.profilePicture
+          },
+          scheduledAt: Number(session.createdAt),
+          rating: 4.5 // Mock rating
+        })),
+        communityActivity: recentActivity.map(session => ({
+          type: 'session_completed',
+          user: {
+            name: `${session.host.profile?.firstName || ''} ${session.host.profile?.lastName || ''}`.trim(),
+            profilePicture: session.host.profile?.profilePicture
+          },
+          action: `completed a session with ${session.learner.profile?.firstName || 'a learner'}`,
+          timestamp: Number(session.updatedAt),
+          timeAgo: this.getTimeAgo(Number(session.updatedAt))
+        }))
+      };
   }
 
   getTimeAgo(timestamp) {

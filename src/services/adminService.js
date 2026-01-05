@@ -96,38 +96,24 @@ class AdminService {
   }
 
   async getUserById(userId) {
-    return await prisma.user.findUnique({
-      where: { id: userId },
-      include: {
-        profile: true,
-        wallet: {
-          include: {
-            transactions: {
-              orderBy: { createdAt: 'desc' },
-              take: 10
+    try {
+      return await prisma.user.findUnique({
+        where: { id: userId },
+        include: {
+          profile: true,
+          wallet: {
+            select: {
+              availableCredits: true,
+              totalEarned: true,
+              totalSpent: true
             }
           }
-        },
-        hostedSessions: {
-          include: {
-            participants: true
-          }
-        },
-        participantSessions: {
-          include: {
-            session: {
-              select: {
-                title: true,
-                status: true,
-                creditCost: true
-              }
-            }
-          }
-        },
-        sentReviews: true,
-        receivedReviews: true
-      }
-    });
+        }
+      });
+    } catch (error) {
+      console.error('Error in getUserById:', error);
+      return null;
+    }
   }
 
   async suspendUser(userId, reason) {
@@ -141,18 +127,19 @@ class AdminService {
       await tx.session.updateMany({
         where: {
           hostId: userId,
-          status: { in: ['PENDING', 'CONFIRMED'] }
+          sessionStatus: { in: ['PENDING', 'CONFIRMED'] }
         },
-        data: { status: 'CANCELLED' }
+        data: { sessionStatus: 'CANCELLED' }
       });
 
       // Create admin action log
       await tx.adminAction.create({
         data: {
-          adminId: 'system', // Will be updated with actual admin ID
+          adminId: 'system',
           targetUserId: userId,
           action: 'USER_SUSPENDED',
-          description: reason
+          description: reason,
+          updatedAt: BigInt(Date.now())
         }
       });
 
@@ -172,7 +159,8 @@ class AdminService {
           adminId: 'system',
           targetUserId: userId,
           action: 'USER_RESTORED',
-          description: reason
+          description: reason,
+          updatedAt: BigInt(Date.now())
         }
       });
 
@@ -194,7 +182,8 @@ class AdminService {
         where: { userId },
         data: {
           availableCredits: { increment: amount },
-          totalEarned: amount > 0 ? { increment: amount } : undefined
+          totalEarned: amount > 0 ? { increment: amount } : undefined,
+          updatedAt: BigInt(Date.now())
         }
       });
 
@@ -205,7 +194,8 @@ class AdminService {
           type: 'ADMIN_ADJUSTMENT',
           amount,
           description: `Admin adjustment: ${reason}`,
-          status: 'COMPLETED'
+          status: 'COMPLETED',
+          updatedAt: BigInt(Date.now())
         }
       });
 
@@ -216,7 +206,8 @@ class AdminService {
           targetUserId: userId,
           action: 'CREDIT_ADJUSTMENT',
           description: `${amount > 0 ? 'Added' : 'Deducted'} ${Math.abs(amount)} credits: ${reason}`,
-          metadata: { amount, reason }
+          metadata: { amount, reason },
+          updatedAt: BigInt(Date.now())
         }
       });
 
@@ -247,35 +238,20 @@ class AdminService {
   async cancelSession(sessionId, reason, adminId) {
     return await prisma.$transaction(async (tx) => {
       const session = await tx.session.findUnique({
-        where: { id: sessionId },
-        include: { participants: true }
+        where: { id: sessionId }
       });
 
       if (!session) {
         throw new Error('Session not found');
       }
 
-      // Refund credits to participants
-      for (const participant of session.participants) {
-        const wallet = await tx.wallet.findUnique({
-          where: { userId: participant.userId }
-        });
-
-        if (wallet) {
-          await tx.wallet.update({
-            where: { userId: participant.userId },
-            data: {
-              availableCredits: { increment: session.creditCost },
-              lockedCredits: { decrement: session.creditCost }
-            }
-          });
-        }
-      }
-
       // Update session status
       const updatedSession = await tx.session.update({
         where: { id: sessionId },
-        data: { status: 'CANCELLED' }
+        data: { 
+          sessionStatus: 'CANCELLED',
+          updatedAt: BigInt(Date.now())
+        }
       });
 
       // Log admin action
@@ -284,7 +260,8 @@ class AdminService {
           adminId,
           action: 'SESSION_CANCELLED',
           description: `Admin cancelled session: ${reason}`,
-          metadata: { sessionId, reason }
+          metadata: { sessionId, reason },
+          updatedAt: BigInt(Date.now())
         }
       });
 
@@ -323,7 +300,7 @@ class AdminService {
         data: {
           status: 'RESOLVED',
           resolvedBy: adminId,
-          resolvedAt: new Date()
+          resolvedAt: BigInt(Date.now())
         }
       });
 
@@ -332,7 +309,8 @@ class AdminService {
           adminId,
           action: 'REPORT_RESOLVED',
           description: `Resolved report: ${resolution}`,
-          metadata: { reportId, resolution }
+          metadata: { reportId, resolution },
+          updatedAt: BigInt(Date.now())
         }
       });
 

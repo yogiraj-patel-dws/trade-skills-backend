@@ -60,6 +60,26 @@ class UserController {
       res.status(400).json(ApiResponse.error(error.message, 400));
     }
   }
+  
+  async updateSkill(req, res) {
+    try {
+      const { id } = req.params;
+      const userSkill = await userService.updateUserSkill(req.user.id, id, req.body);
+      res.status(200).json(ApiResponse.success({ userSkill }, 'Skill updated successfully', 200));
+    } catch (error) {
+      res.status(400).json(ApiResponse.error(error.message, 400));
+    }
+  }
+  
+  async deleteSkill(req, res) {
+    try {
+      const { id } = req.params;
+      const result = await userService.deleteUserSkill(req.user.id, id);
+      res.status(200).json(ApiResponse.success(result, 'Skill deleted successfully', 200));
+    } catch (error) {
+      res.status(400).json(ApiResponse.error(error.message, 400));
+    }
+  }
 }
 
 module.exports = new UserController();
